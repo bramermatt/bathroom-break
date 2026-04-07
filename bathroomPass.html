@@ -1,218 +1,673 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Bathroom Pass Queue</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<style>
-body { font-family: system-ui; background:#f4f4f4; padding:1em; transition: background 0.5s; }
-h1,h2 { margin:0; line-height:1em; }
-select, input, button { padding:6px; margin:4px 0; }
-.controls { margin-bottom:10px; }
-.container { display:grid; grid-template-columns: repeat(5,1fr); gap:20px; transition: all 0.5s;}
-.box { background:white; padding:15px; border-radius:10px; box-shadow:0 2px 6px rgba(0,0,0,.1); transition: all 0.3s;}
-ul { list-style:none; padding:0; }
-li { padding:6px; margin:4px 0; margin-right: 1vw; background:#eaeaea; border-radius:6px; cursor:pointer; display:flex; justify-content:space-between; transition: all 0.3s; }
-li:hover { background:#d6d6d6; }
-.timer { font-size:0.85em; color:#555; }
-.late { background:#ffcccc !important; }
-.badge { background:#333; color:white; border-radius:12px; padding:2px 8px; font-size:0.75em; }
-.locked { opacity:0.5; pointer-events:none; }
-#todaysDate { font-weight:700; }
-.shared-view { display: block; }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bathroom Break Tracker</title>
+  <style>
+    :root {
+      --bg: #f3f6fb;
+      --panel: #ffffff;
+      --text: #10223b;
+      --muted: #5f718a;
+      --accent: #2a6df4;
+      --accent-soft: #e8f0ff;
+      --danger: #d94444;
+      --warning: #ffb020;
+      --ok: #1a9b5f;
+      --ring: 0 0 0 3px rgba(42, 109, 244, 0.2);
+      --radius: 14px;
+    }
 
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
 
-@media screen and (max-width: 1000px){
-  .container { display:flex; flex-wrap:wrap; justify-content:space-between;}
-  .box { flex:1 1 45%; margin-bottom:20px;}
-}
+    .app {
+      max-width: 1300px;
+      margin: 0 auto;
+      padding: 20px;
+      display: grid;
+      gap: 16px;
+    }
 
-/* PAGE MODES */
-.teacher-mode .teacher-only { display:block; }
-.teacher-mode .student-only { display:none; }
-.student-mode .teacher-only { display:none; }
-.student-mode .student-only { display:block; }
+    .panel {
+      background: var(--panel);
+      border-radius: var(--radius);
+      box-shadow: 0 10px 30px rgba(16, 34, 59, 0.08);
+      padding: 16px;
+    }
 
-/* STUDENT MODE STYLING */
-body.student-mode { background:#1a1a2e; color:#fff; }
-body.student-mode .box { background:#162447; color:#fff; box-shadow:0 2px 10px rgba(0,0,0,.5);}
-body.student-mode li { background:#1f4068; color:#fff; font-size:1.2em; justify-content:center;}
-body.student-mode li:hover { background:#e43f5a; transform: scale(1.05);}
-body.student-mode .timer { font-size:1em; font-weight:bold; color:#ffd166; }
-body.student-mode button { background:#e43f5a; color:#fff; border:none; padding:10px 15px; border-radius:8px; cursor:pointer; font-size:1.1em; }
-body.student-mode button:hover { background:#ff7f50; }
-</style>
+    h1, h2, h3, p { margin: 0; }
+
+    .top {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 16px;
+    }
+
+    .top-left {
+      display: grid;
+      gap: 10px;
+    }
+
+    .subtle { color: var(--muted); font-size: 0.95rem; }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: end;
+    }
+
+    .field { display: grid; gap: 6px; min-width: 170px; }
+    .field label { font-size: 0.85rem; color: var(--muted); }
+
+    select, input, textarea, button {
+      border-radius: 10px;
+      border: 1px solid #d9e3f2;
+      padding: 9px 10px;
+      font-size: 0.95rem;
+      background: #fff;
+      color: var(--text);
+    }
+
+    select:focus, input:focus, textarea:focus, button:focus { outline: none; box-shadow: var(--ring); }
+
+    button {
+      cursor: pointer;
+      border: none;
+      background: var(--accent);
+      color: #fff;
+      font-weight: 600;
+    }
+
+    button.secondary { background: #e6edfb; color: #23447f; }
+    button.danger { background: var(--danger); }
+    button.success { background: var(--ok); }
+
+    .period-pill {
+      background: var(--accent-soft);
+      border: 1px solid #c8dbff;
+      color: #1d4dab;
+      border-radius: 999px;
+      padding: 8px 12px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 600;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .stat {
+      background: #f8fbff;
+      border-radius: 10px;
+      border: 1px solid #e4efff;
+      padding: 10px;
+    }
+    .stat .label { font-size: 0.8rem; color: var(--muted); }
+    .stat .value { font-size: 1.2rem; font-weight: 700; }
+
+    .main {
+      display: grid;
+      grid-template-columns: 1.2fr 0.9fr;
+      gap: 16px;
+      align-items: start;
+    }
+
+    .student-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+      gap: 10px;
+      margin-top: 12px;
+      max-height: 470px;
+      overflow: auto;
+      padding-right: 4px;
+    }
+
+    .student {
+      border: 1px solid #dce8ff;
+      background: #f6f9ff;
+      border-radius: 10px;
+      padding: 10px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .student .name { font-weight: 650; font-size: 0.95rem; }
+    .chip {
+      display: inline-block;
+      padding: 3px 7px;
+      font-size: 0.75rem;
+      border-radius: 999px;
+      background: #eaf0fa;
+      color: #264167;
+      margin-right: 4px;
+    }
+
+    .live {
+      display: grid;
+      gap: 10px;
+    }
+
+    .out-card {
+      border: 1px solid #ffd9d9;
+      background: #fff7f7;
+      border-radius: 12px;
+      padding: 12px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .timer {
+      font-size: 1.8rem;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+    }
+
+    .late { color: var(--danger); }
+    .on-time { color: #244a84; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+
+    th, td {
+      border-bottom: 1px solid #e8edf8;
+      padding: 8px 6px;
+      text-align: left;
+    }
+
+    th { color: var(--muted); font-weight: 600; font-size: 0.8rem; }
+
+    .history-wrap { max-height: 280px; overflow: auto; margin-top: 8px; }
+
+    .warn {
+      color: #8a5a00;
+      background: #fff6df;
+      border: 1px solid #ffe1a1;
+      border-radius: 10px;
+      padding: 9px;
+      font-size: 0.86rem;
+    }
+
+    details summary { cursor: pointer; font-weight: 600; }
+
+    @media (max-width: 1050px) {
+      .top, .main { grid-template-columns: 1fr; }
+      .student-grid { max-height: none; }
+    }
+  </style>
 </head>
 <body>
-<h1>Mr. Bramer's Bathroom Pass Queue</h1>
-<p>Today's date: <span id="todaysDate"></span></p>
+  <div class="app">
+    <section class="panel top">
+      <div class="top-left">
+        <h1>Bathroom Break Tracker</h1>
+        <p class="subtle">Click a student to send them to RR. Click <strong>Mark Returned</strong> when they come back.</p>
 
-<!-- TEACHER CONTROLS -->
-<div class="controls teacher-only">
-  <label>Period:</label>
-  <select id="periodSelect"></select>
-  <button onclick="resetPeriod()">Reset Period</button>
-  <button onclick="toggleLock()">Lock / Unlock</button>
-  <button onclick="toggleTeacherStudentView()">Toggle Student View</button>
-</div>
+        <div class="controls">
+          <div class="field">
+            <label for="scheduleMode">Schedule</label>
+            <select id="scheduleMode">
+              <option value="regular">Regular Bell Schedule</option>
+              <option value="alternate">Current / Alternate Schedule</option>
+            </select>
+          </div>
 
-<!-- STUDENT REQUEST BUTTON -->
-<div class="student-only" style="margin:10px 0;">
-  <button id="requestRR">Request to RR</button>
+          <div class="field">
+            <label for="periodSelect">Manual Period Override</label>
+            <select id="periodSelect"></select>
+          </div>
 
-<div class="controls">
-  <button onclick="toggleTeacherStudentView()">Toggle Student View</button>
-</div>
+          <div class="field">
+            <label for="maxMinutes">Late After (minutes)</label>
+            <input id="maxMinutes" type="number" min="1" max="30" value="5" />
+          </div>
 
-</div>
+          <button id="clearPeriod" class="danger">Reset This Period Data</button>
+        </div>
 
-<div class="container">
-  <div class="box teacher-only">
-    <h2>Roster</h2>
-    <ul id="roster"></ul>
+        <div class="period-pill" id="periodPill"></div>
+      </div>
+
+      <div>
+        <h3>Today</h3>
+        <p class="subtle" id="todayDate"></p>
+        <div class="stats">
+          <div class="stat">
+            <div class="label">Current Period Trips</div>
+            <div class="value" id="periodTrips">0</div>
+          </div>
+          <div class="stat">
+            <div class="label">Out Right Now</div>
+            <div class="value" id="outNow">0</div>
+          </div>
+          <div class="stat">
+            <div class="label">Total Logged Today</div>
+            <div class="value" id="allTrips">0</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <details>
+        <summary>Alternate Schedule Editor (for your second copy/current schedule)</summary>
+        <p class="subtle" style="margin:8px 0;">Use HH:MM 24-hour format. Example: 08:05. Period 4 is planning only and not tracked.</p>
+        <textarea id="alternateEditor" rows="8" style="width:100%; margin-top:8px;"></textarea>
+        <div style="margin-top:8px; display:flex; gap:8px; flex-wrap: wrap;">
+          <button id="saveAlternate" class="success">Save Alternate Schedule</button>
+          <button id="resetAlternate" class="secondary">Reset Alternate to Default</button>
+        </div>
+      </details>
+    </section>
+
+    <section class="main">
+      <div class="panel">
+        <div class="controls" style="justify-content:space-between; align-items:center;">
+          <h2>Students</h2>
+          <div class="field" style="min-width:220px;">
+            <label for="studentSearch">Search</label>
+            <input id="studentSearch" placeholder="Type a student name" />
+          </div>
+        </div>
+        <div class="student-grid" id="studentGrid"></div>
+      </div>
+
+      <div class="live">
+        <section class="panel">
+          <h2>Currently Out</h2>
+          <div id="outContainer" style="margin-top:10px;"></div>
+          <p class="warn" id="singleOutMsg" style="margin-top:10px; display:none;">Only one student can be out at a time.</p>
+        </section>
+
+        <section class="panel">
+          <h2>Recent History (Current Period)</h2>
+          <div class="history-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Student</th>
+                  <th>Out</th>
+                  <th>Back</th>
+                  <th>Duration</th>
+                </tr>
+              </thead>
+              <tbody id="historyBody"></tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+    </section>
   </div>
-  <div class="box teacher-only">
-    <h2>On-Deck</h2>
-    <ul id="onDeck"></ul>
-  </div>
-  <div class="box teacher-only">
-    <h2>Requests</h2>
-    <ul id="requestsList"></ul>
-  </div>
-<div class="box shared-view">
-  <h2>Out of Room</h2>
-  <ul id="outList"></ul>
-</div>
-  <div class="box teacher-only">
-    <h2>Completed</h2>
-    <ul id="doneList"></ul>
-  </div>
-</div>
 
-<script>
-document.getElementById('todaysDate').textContent = new Date().toLocaleDateString();
+  <script>
+    const PERIOD_ORDER = ["Period 1", "Period 2", "Period 3", "Period 5", "Period 6", "Period 7"];
+    const PLANNING_LABEL = "Planning";
 
-// ===== URL MODE =====
-const params = new URLSearchParams(window.location.search);
-const urlView = params.get('view') || 'teacher';
+    const regularSchedule = [
+      { label: 'Period 1', start: '07:45', end: '08:30' },
+      { label: 'Period 2', start: '08:35', end: '09:20' },
+      { label: 'Period 3', start: '09:25', end: '10:10' },
+      { label: PLANNING_LABEL, start: '10:15', end: '11:50' },
+      { label: 'Period 5', start: '11:55', end: '12:40' },
+      { label: 'Period 6', start: '12:45', end: '13:30' },
+      { label: 'Period 7', start: '13:35', end: '14:20' }
+    ];
 
-document.body.classList.remove('teacher-mode', 'student-mode');
-document.body.classList.add(urlView + '-mode');
+    const defaultAlternateSchedule = JSON.parse(JSON.stringify(regularSchedule));
 
+    const rosters = {
+      "Period 1": [
+        "Beason, Kyrell","Blevins, Faith","Bringham, Nathaniel","Buckner, Bevyn","Carson, Cash","Cruz Lemus, Katya","Damian, Miguel","Dansby, Sean","Fountain, Akeelah","Guadalupe Flores, Alexis","Hatton, Cayden","Haymer, Ki'Avoni","Hightower, Austin","Jordan, Mariah","LaMaster, Mason","Morales, Landon","PadillaThornton, Zachariah","Palemon, Luis","Patrick, Micah","Richardson, Steven","Riddlespriger, Marley","Santana, Jason","Segebart, Chasity","Sharpnack, Alissa","Vowell, Layla"
+      ],
+      "Period 2": [
+        "Booker, Milana","Burnell, Logan","Chavez Morales, Alfredo","Durbin, Blake","Fountain, Isaac","Garner, Marquel","Hargett, Easton","Haskins, Caelan","Hernandez, Myshielis","Holman, Chase","Lewis, Ava","Magallon, Heily","Miller, Bryson","Napier, Braylen","Pasley, Elijah","Rojas, Jovanny","Santillan, Emiliano","Shircliff, Madelyn","Stephens, Rowaan","Williams, Anjalese","Wilson, Tristin"
+      ],
+      "Period 3": [
+        "Alokoa, Kobesasi-Ismael","Alvarenga, Haylee","Asare, Kingsley","Beckam, Jackson","Early, Samson","Escobar, Jacqueline","Liles, Aminah","Linthicome, Deontae","Miller, Christian","Pulliam, Kenzie","Reed, Terrain","Rubio, Adair","Sparkman, Noah","Wilson, Ty'Tianna"
+      ],
+      "Period 5": [
+        "Blevins, Miah","Campos Juarez, Brandon","Dunn, Ari'hya","Gonzalez Rojas, Misael","Greene, Shane","Hernandez Suarez, Santiago","Hicks, Makenzie","Jimenez Hidalgo, Camila","Johnson, Tyren","Jordan, Amiyah","Middleton, Arayiah","Moore, Ayedenn","Newson, Justice","Ricketts, Aiden","Rosas, Rhianna","Smith, Ja'Rayah","Wagner, Aaliyah","Washington, Kori","Wright, Dyamon"
+      ],
+      "Period 6": [
+        "Amos, Skylan","Anderson, Alyssa","Baggett, Yorel","Brown, Autumn","Brown, Sariya","Coates, Andrew","Cross, Yanaija","Dunn, Samuel","Kannamore-Carter, Ra'janae","Maniloff, Georgia","Marshall, Maya","Medrano, Lygaci","Moorman, Dionna","Nash, Mekhi","Parham, Symphony","Pena, Daylin","Shelton, Arion","Thomas, Ja'Miracle","Thompson, Lorenzo"
+      ],
+      "Period 7": [
+        "Alvarez Madrid, Luis","Bailey, Breanna","Benn, Mya","Britto, Emery","Cannon, Evan","Copas, Stephanie","Culver, Chase","Delgado, Isaac","Eppler, Robert","Gary, Nevaeh","Gruver, Michael","Hinkle, Aria","Jones, Chloe","Jones-Turner, Reno","Pena Canseco, Jose","Ross, Baylee","Santana, Jeiran","Santos, Edgar","Young, Braylen"
+      ]
+    };
 
-// ===== CONFIG =====
-const MAX_OUT_MINUTES = 5;
-const ONE_OUT_ONLY = true;
+    const storageKey = "bathroom-break-state-v2";
 
-// ===== PERIODS & ROSTERS =====
-const periods = ["Period 1","Period 2","Period 3","Planning","Period 5","Period 6","Period 7"];
-const rosters = {
-  "Period 1":["Alice","Ben","Carlos","Diana"],
-  "Period 2":["Ethan","Faith","Gavin","Hannah"],
-  "Period 3":["Haylee","Jacqeline","Kevin","Lena"],
-  "Planning":[""],
-  "Period 5":["Quinn","Rosa","Sam","Tina"],
-  "Period 6":["Uma","Victor","Will","Xander"],
-  "Period 7":["Yara","Zane","Avery","Brooke"]
-};
+    const state = loadState();
 
-// ===== DATA =====
-const data = {};
-periods.forEach(p => {
-  data[p] = { onDeck:[], out:[], done:[], requests:[], counts:{}, locked:false };
-  rosters[p].forEach(n => data[p].counts[n]=0);
-});
+    const el = {
+      todayDate: document.getElementById('todayDate'),
+      scheduleMode: document.getElementById('scheduleMode'),
+      periodSelect: document.getElementById('periodSelect'),
+      maxMinutes: document.getElementById('maxMinutes'),
+      periodPill: document.getElementById('periodPill'),
+      periodTrips: document.getElementById('periodTrips'),
+      outNow: document.getElementById('outNow'),
+      allTrips: document.getElementById('allTrips'),
+      studentSearch: document.getElementById('studentSearch'),
+      studentGrid: document.getElementById('studentGrid'),
+      outContainer: document.getElementById('outContainer'),
+      historyBody: document.getElementById('historyBody'),
+      clearPeriod: document.getElementById('clearPeriod'),
+      singleOutMsg: document.getElementById('singleOutMsg'),
+      alternateEditor: document.getElementById('alternateEditor'),
+      saveAlternate: document.getElementById('saveAlternate'),
+      resetAlternate: document.getElementById('resetAlternate')
+    };
 
-// ===== UI SETUP =====
-const periodSelect = document.getElementById('periodSelect');
-periods.forEach(p => { const o = document.createElement('option'); o.value=p; o.textContent=p; periodSelect.appendChild(o); });
+    function loadState() {
+      const raw = localStorage.getItem(storageKey);
+      const empty = {
+        scheduleMode: 'regular',
+        selectedPeriod: 'Period 1',
+        maxMinutes: 5,
+        alternateSchedule: defaultAlternateSchedule,
+        periods: {}
+      };
 
-// ===== QUEUE FUNCTIONS =====
-function currentPeriod(){return data[periodSelect.value];}
-function toggleLock(){currentPeriod().locked=!currentPeriod().locked; render();}
-function resetPeriod(){if(!confirm('Reset all lists for this period?')) return; const p=currentPeriod(); p.onDeck=[]; p.out=[]; p.done=[]; p.requests=[]; render();}
-function addToOnDeck(name){const p=currentPeriod(); if(p.locked) return; p.onDeck.push({name}); render();}
-function moveToOut(i){const p=currentPeriod(); if(ONE_OUT_ONLY && p.out.length>0) return alert('Only one student out at a time'); const s=p.onDeck.splice(i,1)[0]; s.start=Date.now(); p.out.push(s); p.counts[s.name]++; render();}
-function moveToDone(i){const p=currentPeriod(); const s=p.out.splice(i,1)[0]; s.end=Date.now(); s.duration=Math.floor((s.end-s.start)/1000); p.done.push(s); render();}
+      PERIOD_ORDER.forEach(period => {
+        empty.periods[period] = {
+          out: [],
+          history: [],
+          counts: Object.fromEntries((rosters[period] || []).map(name => [name, { trips: 0, totalSeconds: 0 }]))
+        };
+      });
 
-// ===== STUDENT REQUEST =====
-function studentRequest(name){
-  if(!name) name = prompt("Enter your name:");
-  if(!name) return;
-  const p=currentPeriod();
-  p.requests.push({name,time:Date.now()});
-  render();
-}
-const requestBtn=document.getElementById('requestRR');
-if(requestBtn) requestBtn.onclick = () => studentRequest();
+      if (!raw) return empty;
 
-// ===== TEACHER TOGGLE VIEW =====
-function toggleTeacherStudentView(){document.body.classList.toggle('student-mode');}
+      try {
+        const parsed = JSON.parse(raw);
+        const merged = { ...empty, ...parsed };
+        PERIOD_ORDER.forEach(period => {
+          merged.periods[period] = merged.periods[period] || empty.periods[period];
+          merged.periods[period].counts = merged.periods[period].counts || {};
+          (rosters[period] || []).forEach(name => {
+            if (!merged.periods[period].counts[name]) {
+              merged.periods[period].counts[name] = { trips: 0, totalSeconds: 0 };
+            }
+          });
+        });
+        return merged;
+      } catch {
+        return empty;
+      }
+    }
 
-// ===== RENDER =====
-function render(){
-  const p = currentPeriod();
-  const rosterEl = document.getElementById('roster');
-  const onDeck = document.getElementById('onDeck');
-  const outList = document.getElementById('outList');
-  const doneList = document.getElementById('doneList');
-  const requestsEl = document.getElementById('requestsList');
+    function persist() {
+      localStorage.setItem(storageKey, JSON.stringify(state));
+    }
 
-  rosterEl.innerHTML=''; onDeck.innerHTML=''; outList.innerHTML=' '; doneList.innerHTML=''; requestsEl.innerHTML='';
+    function toMinutes(timeString) {
+      const [h, m] = timeString.split(':').map(Number);
+      return h * 60 + m;
+    }
 
-  rosterEl.className = p.locked?'locked':'';
+    function nowMinutes() {
+      const d = new Date();
+      return d.getHours() * 60 + d.getMinutes();
+    }
 
-  rosters[periodSelect.value].forEach(n=>{
-    const li=document.createElement('li');
-    li.innerHTML=`${n} <span class="badge">${p.counts[n]}</span>`;
-    li.onclick=()=>addToOnDeck(n);
-    rosterEl.appendChild(li);
-  });
+    function getSchedule() {
+      return state.scheduleMode === 'alternate' ? state.alternateSchedule : regularSchedule;
+    }
 
-  p.onDeck.forEach((s,i)=>{
-    const li=document.createElement('li');
-    li.textContent = s.name;
-    li.onclick=()=>moveToOut(i);
-    onDeck.appendChild(li);
-  });
+    function getAutoPeriodLabel() {
+      const now = nowMinutes();
+      for (const slot of getSchedule()) {
+        const start = toMinutes(slot.start);
+        const end = toMinutes(slot.end);
+        if (now >= start && now <= end) return slot.label;
+      }
+      return 'Outside class periods';
+    }
 
-  p.requests.forEach((r,i)=>{
-    const li=document.createElement('li');
-    const time = new Date(r.time).toLocaleTimeString();
-    li.innerHTML=`${r.name} <span class="timer">${time}</span>`;
-    li.onclick=()=>{ addToOnDeck(r.name); p.requests.splice(i,1); render(); };
-    requestsEl.appendChild(li);
-  });
+    function formatDuration(totalSeconds) {
+      if (totalSeconds < 60) return `${totalSeconds}s`;
+      const mins = Math.floor(totalSeconds / 60);
+      const secs = totalSeconds % 60;
+      return `${mins}:${String(secs).padStart(2, '0')}`;
+    }
 
-  p.out.forEach((s,i)=>{
-    const elapsed=Math.floor((Date.now()-s.start)/1000);
-    const li=document.createElement('li');
-    if(elapsed>MAX_OUT_MINUTES*60) li.classList.add('late');
-    li.innerHTML=`${s.name} - <span class="timer">${elapsed}s</span>`;
-    li.onclick=()=>moveToDone(i);
-    outList.appendChild(li);
-  });
+    function formatClock(ms) {
+      const d = new Date(ms);
+      return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit' });
+    }
 
-  p.done.forEach(s=>{
-    const li=document.createElement('li');
-    li.textContent=`${s.name} – ${s.duration}s`;
-    doneList.appendChild(li);
-  });
-}
+    function currentPeriodData() {
+      return state.periods[state.selectedPeriod];
+    }
 
-function toggleTeacherStudentView() {
-  if (document.body.classList.contains('student-mode')) {
-    document.body.classList.remove('student-mode');
-    document.body.classList.add('teacher-mode');
-  } else {
-    document.body.classList.remove('teacher-mode');
-    document.body.classList.add('student-mode');
-  }
-}
+    function buildPeriodSelect() {
+      el.periodSelect.innerHTML = '';
+      PERIOD_ORDER.forEach(period => {
+        const opt = document.createElement('option');
+        opt.value = period;
+        opt.textContent = period;
+        el.periodSelect.appendChild(opt);
+      });
+      el.periodSelect.value = state.selectedPeriod;
+    }
 
+    function sendStudentOut(name) {
+      const p = currentPeriodData();
+      if (!p || p.out.length > 0) {
+        el.singleOutMsg.style.display = 'block';
+        return;
+      }
+      el.singleOutMsg.style.display = 'none';
+      p.out.push({ name, startMs: Date.now() });
+      const record = p.counts[name] || { trips: 0, totalSeconds: 0 };
+      record.trips += 1;
+      p.counts[name] = record;
+      persist();
+      render();
+    }
 
-setInterval(render,1000);
-render();
-</script>
+    function markReturned(index) {
+      const p = currentPeriodData();
+      const [entry] = p.out.splice(index, 1);
+      if (!entry) return;
+      const endMs = Date.now();
+      const duration = Math.max(0, Math.floor((endMs - entry.startMs) / 1000));
+      p.history.unshift({
+        name: entry.name,
+        startMs: entry.startMs,
+        endMs,
+        duration
+      });
+      const record = p.counts[entry.name] || { trips: 0, totalSeconds: 0 };
+      record.totalSeconds += duration;
+      p.counts[entry.name] = record;
+      persist();
+      render();
+    }
+
+    function resetCurrentPeriod() {
+      const name = state.selectedPeriod;
+      if (!confirm(`Reset bathroom data for ${name}?`)) return;
+      state.periods[name].out = [];
+      state.periods[name].history = [];
+      state.periods[name].counts = Object.fromEntries((rosters[name] || []).map(student => [student, { trips: 0, totalSeconds: 0 }]));
+      persist();
+      render();
+    }
+
+    function parseScheduleEditor(text) {
+      const lines = text.split('\n').map(line => line.trim()).filter(Boolean);
+      const parsed = [];
+      for (const line of lines) {
+        const parts = line.split('|').map(s => s.trim());
+        if (parts.length !== 3) return null;
+        const [label, start, end] = parts;
+        if (!/^\d{2}:\d{2}$/.test(start) || !/^\d{2}:\d{2}$/.test(end)) return null;
+        parsed.push({ label, start, end });
+      }
+      return parsed;
+    }
+
+    function renderScheduleEditor() {
+      el.alternateEditor.value = state.alternateSchedule
+        .map(slot => `${slot.label} | ${slot.start} | ${slot.end}`)
+        .join('\n');
+    }
+
+    function render() {
+      const autoLabel = getAutoPeriodLabel();
+      const current = currentPeriodData();
+      const lateSeconds = Number(el.maxMinutes.value || state.maxMinutes) * 60;
+      const search = el.studentSearch.value.trim().toLowerCase();
+
+      el.todayDate.textContent = new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+      el.periodPill.textContent = `Auto: ${autoLabel} • Tracking: ${state.selectedPeriod}`;
+
+      const allTrips = PERIOD_ORDER.reduce((sum, period) => {
+        const counts = state.periods[period].counts;
+        return sum + Object.values(counts).reduce((n, rec) => n + (rec.trips || 0), 0);
+      }, 0);
+      const periodTrips = Object.values(current.counts).reduce((n, rec) => n + (rec.trips || 0), 0);
+
+      el.periodTrips.textContent = periodTrips;
+      el.outNow.textContent = current.out.length;
+      el.allTrips.textContent = allTrips;
+
+      const students = (rosters[state.selectedPeriod] || []).filter(name => name.toLowerCase().includes(search));
+      el.studentGrid.innerHTML = '';
+      students.forEach(name => {
+        const rec = current.counts[name] || { trips: 0, totalSeconds: 0 };
+        const card = document.createElement('div');
+        card.className = 'student';
+        card.innerHTML = `
+          <div class="name">${name}</div>
+          <div>
+            <span class="chip">Trips: ${rec.trips}</span>
+            <span class="chip">Total: ${formatDuration(rec.totalSeconds)}</span>
+          </div>
+          <button type="button">Send to RR</button>
+        `;
+        card.querySelector('button').onclick = () => sendStudentOut(name);
+        el.studentGrid.appendChild(card);
+      });
+
+      if (students.length === 0) {
+        el.studentGrid.innerHTML = '<p class="subtle">No students match your search.</p>';
+      }
+
+      el.outContainer.innerHTML = '';
+      if (current.out.length === 0) {
+        el.outContainer.innerHTML = '<p class="subtle">No one is currently out.</p>';
+      } else {
+        current.out.forEach((student, index) => {
+          const elapsed = Math.floor((Date.now() - student.startMs) / 1000);
+          const card = document.createElement('div');
+          card.className = 'out-card';
+          card.innerHTML = `
+            <strong>${student.name}</strong>
+            <div class="subtle">Out since: ${formatClock(student.startMs)}</div>
+            <div class="timer ${elapsed >= lateSeconds ? 'late' : 'on-time'}">${formatDuration(elapsed)}</div>
+            <button type="button" class="success">Mark Returned</button>
+          `;
+          card.querySelector('button').onclick = () => markReturned(index);
+          el.outContainer.appendChild(card);
+        });
+      }
+
+      el.historyBody.innerHTML = '';
+      current.history.slice(0, 50).forEach(row => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${row.name}</td>
+          <td>${formatClock(row.startMs)}</td>
+          <td>${formatClock(row.endMs)}</td>
+          <td>${formatDuration(row.duration)}</td>
+        `;
+        el.historyBody.appendChild(tr);
+      });
+
+      if (current.history.length === 0) {
+        el.historyBody.innerHTML = '<tr><td colspan="4" class="subtle">No trips logged yet for this period.</td></tr>';
+      }
+    }
+
+    function syncPeriodToAutoIfPossible() {
+      const auto = getAutoPeriodLabel();
+      if (PERIOD_ORDER.includes(auto) && state.selectedPeriod !== auto) {
+        state.selectedPeriod = auto;
+        el.periodSelect.value = auto;
+        persist();
+      }
+    }
+
+    function bindEvents() {
+      el.scheduleMode.value = state.scheduleMode;
+      el.maxMinutes.value = state.maxMinutes;
+
+      el.scheduleMode.addEventListener('change', () => {
+        state.scheduleMode = el.scheduleMode.value;
+        syncPeriodToAutoIfPossible();
+        persist();
+        render();
+      });
+
+      el.periodSelect.addEventListener('change', () => {
+        state.selectedPeriod = el.periodSelect.value;
+        persist();
+        render();
+      });
+
+      el.maxMinutes.addEventListener('change', () => {
+        state.maxMinutes = Number(el.maxMinutes.value) || 5;
+        persist();
+        render();
+      });
+
+      el.studentSearch.addEventListener('input', render);
+      el.clearPeriod.addEventListener('click', resetCurrentPeriod);
+
+      el.saveAlternate.addEventListener('click', () => {
+        const parsed = parseScheduleEditor(el.alternateEditor.value);
+        if (!parsed) {
+          alert('Could not save schedule. Use format: Period 1 | 07:45 | 08:30 (one per line).');
+          return;
+        }
+        state.alternateSchedule = parsed;
+        persist();
+        render();
+      });
+
+      el.resetAlternate.addEventListener('click', () => {
+        state.alternateSchedule = JSON.parse(JSON.stringify(defaultAlternateSchedule));
+        renderScheduleEditor();
+        persist();
+        render();
+      });
+    }
+
+    buildPeriodSelect();
+    renderScheduleEditor();
+    bindEvents();
+    syncPeriodToAutoIfPossible();
+    render();
+    setInterval(render, 1000);
+  </script>
 </body>
 </html>
