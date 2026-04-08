@@ -2,8 +2,6 @@
 
 Use this guide to customize `bathroomPass.html` for any teacher.
 
-Quick option: use `teacher-portal/index.html` to paste your data and generate a teacher-specific link automatically.
-
 ---
 
 ## 1) Teacher Setup Questions (Fill this out first)
@@ -127,3 +125,4 @@ Then load that JSON at startup so each teacher only edits one config file.
 - Period appears in `PERIOD_ORDER` but missing in `rosters`.
 - Time format not using `HH:MM`.
 - Planning period accidentally added to `PERIOD_ORDER`.
+
