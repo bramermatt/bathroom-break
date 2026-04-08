@@ -24,7 +24,7 @@
   <div class="wrap">
     <div class="card">
       <h1>Bathroom Break — Teacher Link Setup</h1>
-      <p class="muted">Paste your periods and students, click save, then share your own teacher link (includes config for other devices).</p>
+      <p class="muted">Paste your periods and students, click save, then share your own teacher link.</p>
     </div>
 
     <div class="card grid">
@@ -100,16 +100,10 @@ Student, Four</textarea>
       return (el.teacherId.value || '').trim().toLowerCase().replace(/[^a-z0-9-_]/g, '');
     }
 
-    function encodeConfig(config) {
-      return btoa(unescape(encodeURIComponent(JSON.stringify(config))));
-    }
-
-    function teacherLink(config) {
+    function teacherLink() {
       const id = normalizedTeacherId();
       if (!id) return '';
-      const base = `${window.location.origin}${window.location.pathname.replace('/teacher-portal/index.html', '/bathroomPass.html')}?teacher=${encodeURIComponent(id)}`;
-      if (!config) return base;
-      return `${base}&config=${encodeURIComponent(encodeConfig(config))}`;
+      return `${window.location.origin}${window.location.pathname.replace('/teacher-portal/index.html', '/bathroomPass.html')}?teacher=${encodeURIComponent(id)}`;
     }
 
     function parseSchedule(text) {
@@ -151,7 +145,7 @@ Student, Four</textarea>
       };
 
       localStorage.setItem(`bathroom-break-config-${id}`, JSON.stringify(config));
-      return { id, config, link: teacherLink(config) };
+      return teacherLink();
     }
 
     function refreshLink() {
@@ -162,32 +156,25 @@ Student, Four</textarea>
 
     el.saveBtn.addEventListener('click', () => {
       try {
-        const result = saveConfig();
-        el.status.textContent = `Saved! Share this link: ${result.link}`;
-        el.linkOut.textContent = result.link;
+        const link = saveConfig();
+        el.status.textContent = `Saved! Use this link: ${link}`;
+        refreshLink();
       } catch (err) {
         el.status.textContent = err.message;
       }
     });
 
     el.openBtn.addEventListener('click', () => {
-      try {
-        const result = saveConfig();
-        window.open(result.link, '_blank');
-      } catch (err) {
-        el.status.textContent = err.message;
-      }
+      const link = teacherLink();
+      if (!link) return;
+      window.open(link, '_blank');
     });
 
     el.copyBtn.addEventListener('click', async () => {
-      try {
-        const result = saveConfig();
-        await navigator.clipboard.writeText(result.link);
-        el.status.textContent = 'Teacher link copied (with config).';
-        el.linkOut.textContent = result.link;
-      } catch (err) {
-        el.status.textContent = err.message;
-      }
+      const link = teacherLink();
+      if (!link) return;
+      await navigator.clipboard.writeText(link);
+      el.status.textContent = 'Teacher link copied.';
     });
 
     refreshLink();
