@@ -127,4 +127,3 @@ Then load that JSON at startup so each teacher only edits one config file.
 - Period appears in `PERIOD_ORDER` but missing in `rosters`.
 - Time format not using `HH:MM`.
 - Planning period accidentally added to `PERIOD_ORDER`.
-
