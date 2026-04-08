@@ -4,13 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Bathroom Break Tracker</title>
-  <link
-    rel="stylesheet"
-    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
-    integrity="sha512-SnH5WK+bZxgPHs44uWix+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkR4j8YdLJgyAHIhR35VZc2oM/gI1wP4R5nQ=="
-    crossorigin="anonymous"
-    referrerpolicy="no-referrer"
-  />
   <style>
     :root {
       --bg: #f3f6fb;
@@ -32,7 +25,6 @@
       font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
       background: var(--bg);
       color: var(--text);
-      overflow: auto;
     }
 
     .app {
@@ -41,7 +33,6 @@
       padding: 20px;
       display: grid;
       gap: 16px;
-      min-height: 100vh;
     }
 
     .panel {
@@ -132,10 +123,7 @@
       grid-template-columns: 1.2fr 0.9fr;
       gap: 16px;
       align-items: start;
-      min-height: 0;
     }
-
-    .main > .panel, .live > .panel { min-height: 0; }
 
     .student-grid {
       display: grid;
@@ -157,15 +145,6 @@
     }
 
     .student .name { font-weight: 650; font-size: 0.95rem; }
-    .student.disabled {
-      background: #f0f2f6;
-      border-color: #dde2ea;
-      opacity: 0.78;
-    }
-    .student button:disabled {
-      background: #a5acb8;
-      cursor: not-allowed;
-    }
     .chip {
       display: inline-block;
       padding: 3px 7px;
@@ -180,35 +159,6 @@
       display: grid;
       gap: 10px;
     }
-    .queue-list {
-      display: grid;
-      gap: 8px;
-      margin-top: 10px;
-      max-height: 170px;
-      overflow: auto;
-    }
-    .queue-item {
-      border: 1px solid #dce8ff;
-      background: #f6f9ff;
-      border-radius: 10px;
-      padding: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-    }
-    .queue-item .left {
-      min-width: 0;
-    }
-    .queue-item .left strong {
-      display: block;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .queue-item .left small { color: var(--muted); }
-    .queue-item .actions { display: flex; gap: 6px; }
-    .queue-item .actions button { padding: 6px 8px; font-size: 0.82rem; display:flex; align-items:center; gap:6px; }
 
     .out-card {
       border: 1px solid #ffd9d9;
@@ -242,7 +192,7 @@
 
     th { color: var(--muted); font-weight: 600; font-size: 0.8rem; }
 
-    .history-wrap { max-height: 180px; overflow: auto; margin-top: 8px; }
+    .history-wrap { max-height: 280px; overflow: auto; margin-top: 8px; }
 
     .warn {
       color: #8a5a00;
@@ -257,7 +207,7 @@
 
     @media (max-width: 1050px) {
       .top, .main { grid-template-columns: 1fr; }
-      .student-grid { max-height: none; height: auto; }
+      .student-grid { max-height: none; }
     }
   </style>
 </head>
@@ -288,7 +238,6 @@
           </div>
 
           <button id="clearPeriod" class="danger">Reset This Period Data</button>
-          <button id="toggleSchedulePanel" class="secondary">Show Alternate Schedule</button>
         </div>
 
         <div class="period-pill" id="periodPill"></div>
@@ -314,14 +263,16 @@
       </div>
     </section>
 
-    <section class="panel" id="schedulePanel" style="display:none;">
-        <h3>Alternate Schedule Editor (for your second copy/current schedule)</h3>
+    <section class="panel">
+      <details>
+        <summary>Alternate Schedule Editor (for your second copy/current schedule)</summary>
         <p class="subtle" style="margin:8px 0;">Use HH:MM 24-hour format. Example: 08:05. Period 4 is planning only and not tracked.</p>
         <textarea id="alternateEditor" rows="8" style="width:100%; margin-top:8px;"></textarea>
         <div style="margin-top:8px; display:flex; gap:8px; flex-wrap: wrap;">
           <button id="saveAlternate" class="success">Save Alternate Schedule</button>
           <button id="resetAlternate" class="secondary">Reset Alternate to Default</button>
         </div>
+      </details>
     </section>
 
     <section class="main">
@@ -333,21 +284,10 @@
             <input id="studentSearch" placeholder="Type a student name" />
           </div>
         </div>
-        <p class="warn" id="leaveWindowMsg" style="margin-top:10px; display:none;"></p>
         <div class="student-grid" id="studentGrid"></div>
       </div>
 
       <div class="live">
-        <section class="panel">
-          <h2>Requests</h2>
-          <div id="requestsContainer" class="queue-list"></div>
-        </section>
-
-        <section class="panel">
-          <h2>On Deck</h2>
-          <div id="onDeckContainer" class="queue-list"></div>
-        </section>
-
         <section class="panel">
           <h2>Currently Out</h2>
           <div id="outContainer" style="margin-top:10px;"></div>
@@ -398,19 +338,16 @@
         "Booker, Milana","Burnell, Logan","Chavez Morales, Alfredo","Durbin, Blake","Fountain, Isaac","Garner, Marquel","Hargett, Easton","Haskins, Caelan","Hernandez, Myshielis","Holman, Chase","Lewis, Ava","Magallon, Heily","Miller, Bryson","Napier, Braylen","Pasley, Elijah","Rojas, Jovanny","Santillan, Emiliano","Shircliff, Madelyn","Stephens, Rowaan","Williams, Anjalese","Wilson, Tristin"
       ],
       "Period 3": [
-        "Alokoa, Kobesasi-Ismael","Alvarenga, Haylee","Asare, Kingsley","Beckam, Jackson","Early, Samson","Escobar, Jacqueline","Liles, Aminah","Linthicome, Deontae","Miller, Christian","Pulliam, Kenzie","Reed, Terrain","Rubio, Adair","Sparkman, Noah","Wilson, Ty'Tianna",
-        "Bobo, Luke","Brown, Brandon","Buckner, Stephen","Conner, Kingston","Fountain, Elijah","Fulkerson, Melody","Greenwade, Jeremiah","Ortiz, Christopher","Parker, Raina","Payne, Jaden","Rozier, Michael","Schilling, Kenshawn"
+        "Alokoa, Kobesasi-Ismael","Alvarenga, Haylee","Asare, Kingsley","Beckam, Jackson","Early, Samson","Escobar, Jacqueline","Liles, Aminah","Linthicome, Deontae","Miller, Christian","Pulliam, Kenzie","Reed, Terrain","Rubio, Adair","Sparkman, Noah","Wilson, Ty'Tianna"
       ],
       "Period 5": [
-        "Blevins, Miah","Campos Juarez, Brandon","Dunn, Ari'hya","Gonzalez Rojas, Misael","Greene, Shane","Hernandez Suarez, Santiago","Hicks, Makenzie","Jimenez Hidalgo, Camila","Johnson, Tyren","Jordan, Amiyah","Middleton, Arayiah","Moore, Ayedenn","Newson, Justice","Ricketts, Aiden","Rosas, Rhianna","Smith, Ja'Rayah","Wagner, Aaliyah","Washington, Kori","Wright, Dyamon",
-        "Alvarado, Kayleen","Baker, Jeremy","Bratcher, Isaiah","Claros Ramos, Loany","Crosby, Kobe","Eldridge, Madison","Forrest, Jackson","Gaytan, Alistair","Gleitz, Christian","Harper, Kaylee","Hatcher-Daniel, Jae'shaun","Martin, Kaniel","Misic, Aiden","Smith, Ariana","Smith, Spencer","Wickliffe, Tytionna"
+        "Blevins, Miah","Campos Juarez, Brandon","Dunn, Ari'hya","Gonzalez Rojas, Misael","Greene, Shane","Hernandez Suarez, Santiago","Hicks, Makenzie","Jimenez Hidalgo, Camila","Johnson, Tyren","Jordan, Amiyah","Middleton, Arayiah","Moore, Ayedenn","Newson, Justice","Ricketts, Aiden","Rosas, Rhianna","Smith, Ja'Rayah","Wagner, Aaliyah","Washington, Kori","Wright, Dyamon"
       ],
       "Period 6": [
         "Amos, Skylan","Anderson, Alyssa","Baggett, Yorel","Brown, Autumn","Brown, Sariya","Coates, Andrew","Cross, Yanaija","Dunn, Samuel","Kannamore-Carter, Ra'janae","Maniloff, Georgia","Marshall, Maya","Medrano, Lygaci","Moorman, Dionna","Nash, Mekhi","Parham, Symphony","Pena, Daylin","Shelton, Arion","Thomas, Ja'Miracle","Thompson, Lorenzo"
       ],
       "Period 7": [
-        "Alvarez Madrid, Luis","Bailey, Breanna","Benn, Mya","Britto, Emery","Cannon, Evan","Copas, Stephanie","Culver, Chase","Delgado, Isaac","Eppler, Robert","Gary, Nevaeh","Gruver, Michael","Hinkle, Aria","Jones, Chloe","Jones-Turner, Reno","Pena Canseco, Jose","Ross, Baylee","Santana, Jeiran","Santos, Edgar","Young, Braylen",
-        "Black, Arianna","Brown, Riyhlen","Conde, Eli","Ellery, Detrick","Finch, Brycen","Humphreys, Rylan","Mills, Andrew","Piccuito, Hannah","Spaulding, Easton","Vazquez, Fidel"
+        "Alvarez Madrid, Luis","Bailey, Breanna","Benn, Mya","Britto, Emery","Cannon, Evan","Copas, Stephanie","Culver, Chase","Delgado, Isaac","Eppler, Robert","Gary, Nevaeh","Gruver, Michael","Hinkle, Aria","Jones, Chloe","Jones-Turner, Reno","Pena Canseco, Jose","Ross, Baylee","Santana, Jeiran","Santos, Edgar","Young, Braylen"
       ]
     };
 
@@ -429,13 +366,8 @@
       allTrips: document.getElementById('allTrips'),
       studentSearch: document.getElementById('studentSearch'),
       studentGrid: document.getElementById('studentGrid'),
-      requestsContainer: document.getElementById('requestsContainer'),
-      onDeckContainer: document.getElementById('onDeckContainer'),
       outContainer: document.getElementById('outContainer'),
       historyBody: document.getElementById('historyBody'),
-      schedulePanel: document.getElementById('schedulePanel'),
-      toggleSchedulePanel: document.getElementById('toggleSchedulePanel'),
-      leaveWindowMsg: document.getElementById('leaveWindowMsg'),
       clearPeriod: document.getElementById('clearPeriod'),
       singleOutMsg: document.getElementById('singleOutMsg'),
       alternateEditor: document.getElementById('alternateEditor'),
@@ -455,8 +387,6 @@
 
       PERIOD_ORDER.forEach(period => {
         empty.periods[period] = {
-          requests: [],
-          onDeck: [],
           out: [],
           history: [],
           counts: Object.fromEntries((rosters[period] || []).map(name => [name, { trips: 0, totalSeconds: 0 }]))
@@ -470,8 +400,6 @@
         const merged = { ...empty, ...parsed };
         PERIOD_ORDER.forEach(period => {
           merged.periods[period] = merged.periods[period] || empty.periods[period];
-          merged.periods[period].requests = merged.periods[period].requests || [];
-          merged.periods[period].onDeck = merged.periods[period].onDeck || [];
           merged.periods[period].counts = merged.periods[period].counts || {};
           (rosters[period] || []).forEach(name => {
             if (!merged.periods[period].counts[name]) {
@@ -529,23 +457,6 @@
       return state.periods[state.selectedPeriod];
     }
 
-    function getLeaveRestrictionForSelectedPeriod() {
-      const slot = getSchedule().find(s => s.label === state.selectedPeriod);
-      if (!slot) return { blocked: false, reason: '' };
-      const now = nowMinutes();
-      const start = toMinutes(slot.start);
-      const end = toMinutes(slot.end);
-
-      if (now < start || now > end) return { blocked: false, reason: '' };
-      if (now >= start && now < start + 15) {
-        return { blocked: true, reason: 'RR is blocked during the first 15 minutes of this period.' };
-      }
-      if (now > end - 15 && now <= end) {
-        return { blocked: true, reason: 'RR is blocked during the last 15 minutes of this period.' };
-      }
-      return { blocked: false, reason: '' };
-    }
-
     function buildPeriodSelect() {
       el.periodSelect.innerHTML = '';
       PERIOD_ORDER.forEach(period => {
@@ -559,66 +470,15 @@
 
     function sendStudentOut(name) {
       const p = currentPeriodData();
-      const restriction = getLeaveRestrictionForSelectedPeriod();
-      if (restriction.blocked) {
-        alert(restriction.reason);
-        return false;
-      }
       if (!p || p.out.length > 0) {
         el.singleOutMsg.style.display = 'block';
-        return false;
+        return;
       }
       el.singleOutMsg.style.display = 'none';
       p.out.push({ name, startMs: Date.now() });
       const record = p.counts[name] || { trips: 0, totalSeconds: 0 };
       record.trips += 1;
       p.counts[name] = record;
-      persist();
-      render();
-      return true;
-    }
-
-    function addRequest(name) {
-      const p = currentPeriodData();
-      if (!name || !p) return;
-      const alreadyQueued = p.requests.some(r => r.name === name) || p.onDeck.some(o => o.name === name) || p.out.some(o => o.name === name);
-      if (alreadyQueued) return;
-      p.requests.push({ name, requestedAt: Date.now() });
-      persist();
-      render();
-    }
-
-    function moveRequestToOnDeck(index) {
-      const p = currentPeriodData();
-      const [request] = p.requests.splice(index, 1);
-      if (!request) return;
-      p.onDeck.push({ name: request.name, requestedAt: request.requestedAt, addedToDeckAt: Date.now() });
-      persist();
-      render();
-    }
-
-    function removeRequest(index) {
-      const p = currentPeriodData();
-      p.requests.splice(index, 1);
-      persist();
-      render();
-    }
-
-    function sendOnDeckToOut(index) {
-      const p = currentPeriodData();
-      const student = p.onDeck[index];
-      if (!student) return;
-      const sent = sendStudentOut(student.name);
-      if (sent) {
-        p.onDeck.splice(index, 1);
-        persist();
-        render();
-      }
-    }
-
-    function removeOnDeck(index) {
-      const p = currentPeriodData();
-      p.onDeck.splice(index, 1);
       persist();
       render();
     }
@@ -646,8 +506,6 @@
       const name = state.selectedPeriod;
       if (!confirm(`Reset bathroom data for ${name}?`)) return;
       state.periods[name].out = [];
-      state.periods[name].requests = [];
-      state.periods[name].onDeck = [];
       state.periods[name].history = [];
       state.periods[name].counts = Object.fromEntries((rosters[name] || []).map(student => [student, { trips: 0, totalSeconds: 0 }]));
       persist();
@@ -678,7 +536,6 @@
       const current = currentPeriodData();
       const lateSeconds = Number(el.maxMinutes.value || state.maxMinutes) * 60;
       const search = el.studentSearch.value.trim().toLowerCase();
-      const restriction = getLeaveRestrictionForSelectedPeriod();
 
       el.todayDate.textContent = new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
       el.periodPill.textContent = `Auto: ${autoLabel} • Tracking: ${state.selectedPeriod}`;
@@ -695,79 +552,24 @@
 
       const students = (rosters[state.selectedPeriod] || []).filter(name => name.toLowerCase().includes(search));
       el.studentGrid.innerHTML = '';
-      el.leaveWindowMsg.style.display = restriction.blocked ? 'block' : 'none';
-      el.leaveWindowMsg.textContent = restriction.reason;
       students.forEach(name => {
         const rec = current.counts[name] || { trips: 0, totalSeconds: 0 };
         const card = document.createElement('div');
-        card.className = `student ${restriction.blocked ? 'disabled' : ''}`;
+        card.className = 'student';
         card.innerHTML = `
           <div class="name">${name}</div>
           <div>
             <span class="chip">Trips: ${rec.trips}</span>
             <span class="chip">Total: ${formatDuration(rec.totalSeconds)}</span>
           </div>
-          <div style="display:flex; gap:6px; flex-wrap:wrap;">
-            <button type="button" ${restriction.blocked ? 'disabled' : ''}><i class="fa-solid fa-person-walking-arrow-right"></i> Send</button>
-            <button type="button" class="secondary"><i class="fa-solid fa-bell"></i> Request</button>
-          </div>
+          <button type="button">Send to RR</button>
         `;
-        const buttons = card.querySelectorAll('button');
-        if (!restriction.blocked) buttons[0].onclick = () => sendStudentOut(name);
-        buttons[1].onclick = () => addRequest(name);
+        card.querySelector('button').onclick = () => sendStudentOut(name);
         el.studentGrid.appendChild(card);
       });
 
       if (students.length === 0) {
         el.studentGrid.innerHTML = '<p class="subtle">No students match your search.</p>';
-      }
-
-      el.requestsContainer.innerHTML = '';
-      if (current.requests.length === 0) {
-        el.requestsContainer.innerHTML = '<p class="subtle">No requests yet.</p>';
-      } else {
-        current.requests.forEach((request, index) => {
-          const row = document.createElement('div');
-          row.className = 'queue-item';
-          row.innerHTML = `
-            <div class="left">
-              <strong>${request.name}</strong>
-              <small>Requested: ${formatClock(request.requestedAt)}</small>
-            </div>
-            <div class="actions">
-              <button type="button" class="success"><i class="fa-solid fa-list-ol"></i> On Deck</button>
-              <button type="button" class="danger"><i class="fa-solid fa-xmark"></i> Remove</button>
-            </div>
-          `;
-          const actions = row.querySelectorAll('button');
-          actions[0].onclick = () => moveRequestToOnDeck(index);
-          actions[1].onclick = () => removeRequest(index);
-          el.requestsContainer.appendChild(row);
-        });
-      }
-
-      el.onDeckContainer.innerHTML = '';
-      if (current.onDeck.length === 0) {
-        el.onDeckContainer.innerHTML = '<p class="subtle">No one on deck.</p>';
-      } else {
-        current.onDeck.forEach((student, index) => {
-          const row = document.createElement('div');
-          row.className = 'queue-item';
-          row.innerHTML = `
-            <div class="left">
-              <strong>${index + 1}. ${student.name}</strong>
-              <small>Queued: ${formatClock(student.addedToDeckAt || Date.now())}</small>
-            </div>
-            <div class="actions">
-              <button type="button" ${restriction.blocked ? 'disabled' : ''}><i class="fa-solid fa-share"></i> Send</button>
-              <button type="button" class="danger"><i class="fa-solid fa-xmark"></i> Remove</button>
-            </div>
-          `;
-          const actions = row.querySelectorAll('button');
-          if (!restriction.blocked) actions[0].onclick = () => sendOnDeckToOut(index);
-          actions[1].onclick = () => removeOnDeck(index);
-          el.onDeckContainer.appendChild(row);
-        });
       }
 
       el.outContainer.innerHTML = '';
@@ -840,11 +642,6 @@
 
       el.studentSearch.addEventListener('input', render);
       el.clearPeriod.addEventListener('click', resetCurrentPeriod);
-      el.toggleSchedulePanel.addEventListener('click', () => {
-        const isHidden = el.schedulePanel.style.display === 'none';
-        el.schedulePanel.style.display = isHidden ? 'block' : 'none';
-        el.toggleSchedulePanel.textContent = isHidden ? 'Hide Alternate Schedule' : 'Show Alternate Schedule';
-      });
 
       el.saveAlternate.addEventListener('click', () => {
         const parsed = parseScheduleEditor(el.alternateEditor.value);
