@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bathroom Pass</title>
+  <script>
+    const myConfig = {
+      teacherTitle: "Mr. Bramer's Bathroom Pass",
+      planningLabel: 'Period 4',
+      periodOrder: ['Period 1', 'Period 2', 'Period 3', 'Period 5', 'Period 6', 'Period 7'],
+      regularSchedule: [
+        { label: 'Period 1', start: '07:45', end: '08:30', segments: [{ start: '07:45', end: '08:00', kind: 'no_bathroom' }, { start: '08:00', end: '08:15', kind: 'bathroom_window', maxOut: 2 }, { start: '08:15', end: '08:30', kind: 'no_bathroom' }] },
+        { label: 'Period 2', start: '08:35', end: '09:20', segments: [{ start: '08:35', end: '08:50', kind: 'no_bathroom' }, { start: '08:50', end: '09:05', kind: 'bathroom_window', maxOut: 2 }, { start: '09:05', end: '09:20', kind: 'no_bathroom' }] },
+        { label: 'Period 3', start: '09:25', end: '10:10', segments: [{ start: '09:25', end: '09:40', kind: 'no_bathroom' }, { start: '09:40', end: '09:55', kind: 'bathroom_window', maxOut: 2 }, { start: '09:55', end: '10:10', kind: 'no_bathroom' }] },
+        { label: 'Period 4', start: '10:15', end: '11:50' },
+        { label: 'Period 5', start: '11:55', end: '12:40', segments: [{ start: '11:55', end: '12:10', kind: 'no_bathroom' }, { start: '12:10', end: '12:25', kind: 'bathroom_window', maxOut: 2 }, { start: '12:25', end: '12:40', kind: 'no_bathroom' }] },
+        { label: 'Period 6', start: '12:45', end: '13:30', segments: [{ start: '12:45', end: '13:00', kind: 'no_bathroom' }, { start: '13:00', end: '13:15', kind: 'bathroom_window', maxOut: 2 }, { start: '13:15', end: '13:30', kind: 'no_bathroom' }] },
+        { label: 'Period 7', start: '13:35', end: '14:20', segments: [{ start: '13:35', end: '13:50', kind: 'no_bathroom' }, { start: '13:50', end: '14:05', kind: 'bathroom_window', maxOut: 2 }, { start: '14:05', end: '14:20', kind: 'no_bathroom' }] }
+      ],
+      rosters: {
+        "Period 1": [
+          "Beason, Kyrell","Blevins, Faith","Bringham, Nathaniel","Buckner, Bevyn","Carson, Cash","Cruz Lemus, Katya","Damian, Miguel","Dansby, Sean","Fountain, Akeelah","Guadalupe Flores, Alexis","Hatton, Cayden","Haymer, Ki'Avoni","Hightower, Austin","Jordan, Mariah","LaMaster, Mason","Morales, Landon","PadillaThornton, Zachariah","Palemon, Luis","Patrick, Micah","Richardson, Steven","Riddlespriger, Marley","Santana, Jason","Segebart, Chasity","Sharpnack, Alissa","Vowell, Layla"
+        ],
+        "Period 2": [
+          "Booker, Milana","Burnell, Logan","Chavez Morales, Alfredo","Durbin, Blake","Fountain, Isaac","Garner, Marquel","Hargett, Easton","Haskins, Caelan","Hernandez, Myshielis","Holman, Chase","Lewis, Ava","Magallon, Heily","Miller, Bryson","Napier, Braylen","Pasley, Elijah","Rojas, Jovanny","Santillan, Emiliano","Shircliff, Madelyn","Stephens, Rowaan","Williams, Anjalese","Wilson, Tristin"
+        ],
+        "Period 3": [
+          "Alokoa, Kobesasi-Ismael","Alvarenga, Haylee","Asare, Kingsley","Beckam, Jackson","Early, Samson","Escobar, Jacqueline","Liles, Aminah","Linthicome, Deontae","Miller, Christian","Pulliam, Kenzie","Reed, Terrain","Rubio, Adair","Sparkman, Noah","Wilson, Ty'Tianna",
+          "Bobo, Luke","Brown, Brandon","Buckner, Stephen","Conner, Kingston","Fountain, Elijah","Fulkerson, Melody","Greenwade, Jeremiah","Ortiz, Christopher","Parker, Raina","Payne, Jaden","Rozier, Michael","Schilling, Kenshawn"
+        ],
+        "Period 5": [
+          "Blevins, Miah","Campos Juarez, Brandon","Dunn, Ari'hya","Gonzalez Rojas, Misael","Greene, Shane","Hernandez Suarez, Santiago","Hicks, Makenzie","Jimenez Hidalgo, Camila","Johnson, Tyren","Jordan, Amiyah","Middleton, Arayiah","Moore, Ayedenn","Newson, Justice","Ricketts, Aiden","Rosas, Rhianna","Smith, Ja'Rayah","Wagner, Aaliyah","Washington, Kori","Wright, Dyamon",
+          "Alvarado, Kayleen","Baker, Jeremy","Bratcher, Isaiah","Claros Ramos, Loany","Crosby, Kobe","Eldridge, Madison","Forrest, Jackson","Gaytan, Alistair","Gleitz, Christian","Harper, Kaylee","Hatcher-Daniel, Jae'shaun","Martin, Kaniel","Misic, Aiden","Smith, Ariana","Smith, Spencer","Wickliffe, Tytionna"
+        ],
+        "Period 6": [
+          "Amos, Skylan","Anderson, Alyssa","Baggett, Yorel","Brown, Autumn","Brown, Sariya","Coates, Andrew","Cross, Yanaija","Dunn, Samuel","Kannamore-Carter, Ra'janae","Maniloff, Georgia","Marshall, Maya","Medrano, Lygaci","Moorman, Dionna","Nash, Mekhi","Parham, Symphony","Pena, Daylin","Shelton, Arion","Thomas, Ja'Miracle","Thompson, Lorenzo"
+        ],
+        "Period 7": [
+          "Alvarez Madrid, Luis","Bailey, Breanna","Benn, Mya","Britto, Emery","Cannon, Evan","Copas, Stephanie","Culver, Chase","Delgado, Isaac","Eppler, Robert","Gary, Nevaeh","Gruver, Michael","Hinkle, Aria","Jones, Chloe","Jones-Turner, Reno","Pena Canseco, Jose","Ross, Baylee","Santana, Jeiran","Santos, Edgar","Young, Braylen",
+          "Black, Arianna","Brown, Riyhlen","Conde, Eli","Ellery, Detrick","Finch, Brycen","Humphreys, Rylan","Mills, Andrew","Piccuito, Hannah","Spaulding, Easton","Vazquez, Fidel"
+        ]
+      }
+    };
+
+    const teacherId = 'mr-bramer';
+    localStorage.setItem(`bathroom-break-config-${teacherId}`, JSON.stringify(myConfig));
+    const passthroughParams = new URLSearchParams(window.location.search);
+    if (!passthroughParams.get('teacher')) passthroughParams.set('teacher', teacherId);
+    const hash = window.location.hash || '';
+    window.location.replace(`./bathroomPass.html?${passthroughParams.toString()}${hash}`);
+  </script>
+</head>
+<body></body>
+</html>
