@@ -274,6 +274,15 @@
             <select id="scheduleMode">
               <option value="regular">Regular Bell Schedule</option>
               <option value="alternate">Current / Alternate Schedule</option>
+              <option value="delay">Delay Schedule</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="trackSelect">Lunch Track</label>
+            <select id="trackSelect">
+              <option value="A">Track A</option>
+              <option value="B">Track B</option>
+              <option value="C">Track C</option>
             </select>
           </div>
 
@@ -381,19 +390,35 @@
     const configKey = `bathroom-break-config-${teacherId}`;
 
     const defaultRegularSchedule = [
-      { label: 'Period 1', start: '07:45', end: '08:30' },
-      { label: 'Period 2', start: '08:35', end: '09:20' },
-      { label: 'Period 3', start: '09:25', end: '10:10' },
-      { label: 'Planning', start: '10:15', end: '11:50' },
-      { label: 'Period 5', start: '11:55', end: '12:40' },
-      { label: 'Period 6', start: '12:45', end: '13:30' },
-      { label: 'Period 7', start: '13:35', end: '14:20' }
+      { label: 'Period 1', start: '07:45', end: '08:30', segments: [{ start: '07:45', end: '08:00', kind: 'no_bathroom' }, { start: '08:00', end: '08:15', kind: 'bathroom_window', maxOut: 2 }, { start: '08:15', end: '08:30', kind: 'no_bathroom' }] },
+      { label: 'Period 2', start: '08:35', end: '09:20', segments: [{ start: '08:35', end: '08:50', kind: 'no_bathroom' }, { start: '08:50', end: '09:05', kind: 'bathroom_window', maxOut: 2 }, { start: '09:05', end: '09:20', kind: 'no_bathroom' }] },
+      { label: 'Period 3', start: '09:25', end: '10:10', segments: [{ start: '09:25', end: '09:40', kind: 'no_bathroom' }, { start: '09:40', end: '09:55', kind: 'bathroom_window', maxOut: 2 }, { start: '09:55', end: '10:10', kind: 'no_bathroom' }] },
+      { label: 'Period 4', start: '10:15', end: '11:50', segments: [] },
+      { label: 'Period 5', start: '11:55', end: '12:40', segments: [{ start: '11:55', end: '12:10', kind: 'no_bathroom' }, { start: '12:10', end: '12:25', kind: 'bathroom_window', maxOut: 2 }, { start: '12:25', end: '12:40', kind: 'no_bathroom' }] },
+      { label: 'Period 6', start: '12:45', end: '13:30', segments: [{ start: '12:45', end: '13:00', kind: 'no_bathroom' }, { start: '13:00', end: '13:15', kind: 'bathroom_window', maxOut: 2 }, { start: '13:15', end: '13:30', kind: 'no_bathroom' }] },
+      { label: 'Period 7', start: '13:35', end: '14:20', segments: [{ start: '13:35', end: '13:50', kind: 'no_bathroom' }, { start: '13:50', end: '14:05', kind: 'bathroom_window', maxOut: 2 }, { start: '14:05', end: '14:20', kind: 'no_bathroom' }] }
+    ];
+    const defaultPeriod4Tracks = {
+      A: [{ start: '10:15', end: '10:40', label: 'A Lunch', kind: 'lunch' }, { start: '10:45', end: '11:30', label: 'Period 4 Class', kind: 'class' }],
+      B: [{ start: '10:15', end: '10:45', label: 'Period 4 Class', kind: 'class' }, { start: '10:45', end: '11:15', label: 'B Lunch', kind: 'lunch' }, { start: '11:20', end: '11:35', label: 'Period 4 Class', kind: 'class' }],
+      C: [{ start: '10:15', end: '11:00', label: 'Period 4 Class', kind: 'class' }, { start: '11:20', end: '11:50', label: 'C Lunch', kind: 'lunch' }]
+    };
+    const defaultDelaySchedule = [
+      { label: 'Period 1', start: '09:45', end: '10:10', segments: [{ start: '09:45', end: '10:10', kind: 'class' }] },
+      { label: 'Period 4', start: '10:15', end: '11:50', segments: [{ start: '10:15', end: '11:50', kind: 'class' }] },
+      { label: 'Period 2', start: '11:55', end: '12:20', segments: [{ start: '11:55', end: '12:20', kind: 'class' }] },
+      { label: 'Period 3', start: '12:25', end: '12:50', segments: [{ start: '12:25', end: '12:50', kind: 'class' }] },
+      { label: 'Period 5', start: '12:55', end: '13:20', segments: [{ start: '12:55', end: '13:20', kind: 'class' }] },
+      { label: 'Period 6', start: '13:25', end: '13:50', segments: [{ start: '13:25', end: '13:50', kind: 'class' }] },
+      { label: 'Period 7', start: '13:55', end: '14:20', segments: [{ start: '13:55', end: '14:20', kind: 'class' }] }
     ];
     const defaultConfig = {
       teacherTitle: '',
       planningLabel: 'Planning',
       periodOrder: ["Period 1", "Period 2", "Period 3", "Period 5", "Period 6", "Period 7"],
       regularSchedule: defaultRegularSchedule,
+      delaySchedule: defaultDelaySchedule,
+      period4Tracks: defaultPeriod4Tracks,
       rosters: {
         "Period 1": [],
         "Period 2": [],
@@ -415,6 +440,8 @@
               planningLabel: parsedFromUrl.planningLabel || defaultConfig.planningLabel,
               periodOrder: Array.isArray(parsedFromUrl.periodOrder) && parsedFromUrl.periodOrder.length ? parsedFromUrl.periodOrder : defaultConfig.periodOrder,
               regularSchedule: Array.isArray(parsedFromUrl.regularSchedule) && parsedFromUrl.regularSchedule.length ? parsedFromUrl.regularSchedule : defaultConfig.regularSchedule,
+              delaySchedule: Array.isArray(parsedFromUrl.delaySchedule) && parsedFromUrl.delaySchedule.length ? parsedFromUrl.delaySchedule : defaultConfig.delaySchedule,
+              period4Tracks: parsedFromUrl.period4Tracks && typeof parsedFromUrl.period4Tracks === 'object' ? parsedFromUrl.period4Tracks : defaultConfig.period4Tracks,
               rosters: parsedFromUrl.rosters && typeof parsedFromUrl.rosters === 'object' ? parsedFromUrl.rosters : defaultConfig.rosters,
               teacherTitle: parsedFromUrl.teacherTitle || ''
             };
@@ -432,6 +459,8 @@
           planningLabel: parsed.planningLabel || defaultConfig.planningLabel,
           periodOrder: Array.isArray(parsed.periodOrder) && parsed.periodOrder.length ? parsed.periodOrder : defaultConfig.periodOrder,
           regularSchedule: Array.isArray(parsed.regularSchedule) && parsed.regularSchedule.length ? parsed.regularSchedule : defaultConfig.regularSchedule,
+          delaySchedule: Array.isArray(parsed.delaySchedule) && parsed.delaySchedule.length ? parsed.delaySchedule : defaultConfig.delaySchedule,
+          period4Tracks: parsed.period4Tracks && typeof parsed.period4Tracks === 'object' ? parsed.period4Tracks : defaultConfig.period4Tracks,
           rosters: parsed.rosters && typeof parsed.rosters === 'object' ? parsed.rosters : defaultConfig.rosters,
           teacherTitle: parsed.teacherTitle || ''
         };
@@ -444,7 +473,11 @@
     const PERIOD_ORDER = teacherConfig.periodOrder;
     const PLANNING_LABEL = teacherConfig.planningLabel;
     const regularSchedule = teacherConfig.regularSchedule;
+    const delaySchedule = teacherConfig.delaySchedule || defaultDelaySchedule;
+    const period4Tracks = teacherConfig.period4Tracks || defaultPeriod4Tracks;
     const rosters = teacherConfig.rosters;
+    const MANAGED_PERIODS = Array.from(new Set([...PERIOD_ORDER, ...Object.keys(rosters), 'Period 4']))
+      .filter(label => label && label !== PLANNING_LABEL);
     const defaultAlternateSchedule = JSON.parse(JSON.stringify(regularSchedule));
     const teacherTitle = teacherConfig.teacherTitle || 'Bathroom Break Tracker';
 
@@ -456,6 +489,7 @@
       appTitle: document.getElementById('appTitle'),
       todayDate: document.getElementById('todayDate'),
       scheduleMode: document.getElementById('scheduleMode'),
+      trackSelect: document.getElementById('trackSelect'),
       periodSelect: document.getElementById('periodSelect'),
       maxMinutes: document.getElementById('maxMinutes'),
       periodPill: document.getElementById('periodPill'),
@@ -484,13 +518,14 @@
       const raw = localStorage.getItem(storageKey);
       const empty = {
         scheduleMode: 'regular',
-        selectedPeriod: 'Period 1',
+        track: 'A',
+        selectedPeriod: MANAGED_PERIODS[0] || 'Period 1',
         maxMinutes: 5,
         alternateSchedule: defaultAlternateSchedule,
         periods: {}
       };
 
-      PERIOD_ORDER.forEach(period => {
+      MANAGED_PERIODS.forEach(period => {
         empty.periods[period] = {
           locked: false,
           requests: [],
@@ -506,7 +541,9 @@
       try {
         const parsed = JSON.parse(raw);
         const merged = { ...empty, ...parsed };
-        PERIOD_ORDER.forEach(period => {
+        merged.track = ['A', 'B', 'C'].includes(merged.track) ? merged.track : 'A';
+        if (!MANAGED_PERIODS.includes(merged.selectedPeriod)) merged.selectedPeriod = MANAGED_PERIODS[0] || 'Period 1';
+        MANAGED_PERIODS.forEach(period => {
           merged.periods[period] = merged.periods[period] || empty.periods[period];
           merged.periods[period].locked = !!merged.periods[period].locked;
           merged.periods[period].requests = merged.periods[period].requests || [];
@@ -539,7 +576,9 @@
     }
 
     function getSchedule() {
-      return state.scheduleMode === 'alternate' ? state.alternateSchedule : regularSchedule;
+      if (state.scheduleMode === 'alternate') return state.alternateSchedule;
+      if (state.scheduleMode === 'delay') return delaySchedule;
+      return regularSchedule;
     }
 
     function getAutoPeriodLabel() {
@@ -576,18 +615,27 @@
       const end = toMinutes(slot.end);
 
       if (now < start || now > end) return { blocked: false, reason: '' };
-      if (now >= start && now < start + 15) {
-        return { blocked: true, reason: 'RR is blocked during the first 15 minutes of this period.' };
+
+      const segmentSource = slot.label === 'Period 4' && state.scheduleMode !== 'delay'
+        ? (period4Tracks[state.track] || slot.segments || [])
+        : (slot.segments || []);
+      const activeSegment = segmentSource.find(seg => now >= toMinutes(seg.start) && now <= toMinutes(seg.end));
+
+      if (activeSegment) {
+        if (activeSegment.kind === 'no_bathroom') return { blocked: true, reason: 'RR is blocked during this segment.', maxOut: 0 };
+        if (activeSegment.kind === 'lunch') return { blocked: true, reason: 'RR is blocked during lunch.', maxOut: 0 };
+        if (activeSegment.kind === 'bathroom_window') return { blocked: false, reason: '', maxOut: Number(activeSegment.maxOut || 2) };
       }
-      if (now > end - 15 && now <= end) {
-        return { blocked: true, reason: 'RR is blocked during the last 15 minutes of this period.' };
+
+      if (slot.segments && slot.segments.length > 0) {
+        return { blocked: true, reason: 'RR is not available during this segment.', maxOut: 0 };
       }
-      return { blocked: false, reason: '' };
+      return { blocked: false, reason: '', maxOut: 1 };
     }
 
     function buildPeriodSelect() {
       el.periodSelect.innerHTML = '';
-      PERIOD_ORDER.forEach(period => {
+      MANAGED_PERIODS.forEach(period => {
         const opt = document.createElement('option');
         opt.value = period;
         opt.textContent = period;
@@ -607,7 +655,8 @@
         alert(restriction.reason);
         return false;
       }
-      if (!p || p.out.length > 0) {
+      const maxOut = Number(restriction.maxOut || 1);
+      if (!p || p.out.length >= maxOut) {
         el.singleOutMsg.style.display = 'block';
         return false;
       }
@@ -736,11 +785,12 @@
       const search = el.studentSearch.value.trim().toLowerCase();
       const restriction = getLeaveRestrictionForSelectedPeriod();
       const isLocked = !!current.locked;
+      const maxOut = Number(restriction.maxOut || 1);
 
       el.todayDate.textContent = new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
       el.periodPill.textContent = `Auto: ${autoLabel} • Tracking: ${state.selectedPeriod}`;
 
-      const allTrips = PERIOD_ORDER.reduce((sum, period) => {
+      const allTrips = MANAGED_PERIODS.reduce((sum, period) => {
         const counts = state.periods[period].counts;
         return sum + Object.values(counts).reduce((n, rec) => n + (rec.trips || 0), 0);
       }, 0);
@@ -750,9 +800,16 @@
       el.outNow.textContent = current.out.length;
       el.allTrips.textContent = allTrips;
       el.toggleLock.textContent = isLocked ? 'Unlock Period' : 'Lock Period';
+      el.singleOutMsg.textContent = maxOut > 1
+        ? `Only ${maxOut} students can be out at once in this segment.`
+        : 'Only one student can be out at a time.';
 
-      const students = (rosters[state.selectedPeriod] || []).filter(name => name.toLowerCase().includes(search));
-      const fullRoster = rosters[state.selectedPeriod] || [];
+      const fullRoster = [...(rosters[state.selectedPeriod] || [])].sort((a, b) => {
+        const lastA = (a.split(',')[0] || a).trim().toLowerCase();
+        const lastB = (b.split(',')[0] || b).trim().toLowerCase();
+        return lastA.localeCompare(lastB);
+      });
+      const students = fullRoster.filter(name => name.toLowerCase().includes(search));
       el.studentGrid.innerHTML = '';
       if (isLocked) {
         el.leaveWindowMsg.style.display = 'block';
@@ -876,7 +933,7 @@
 
     function syncPeriodToAutoIfPossible() {
       const auto = getAutoPeriodLabel();
-      if (PERIOD_ORDER.includes(auto) && state.selectedPeriod !== auto) {
+      if (MANAGED_PERIODS.includes(auto) && state.selectedPeriod !== auto) {
         state.selectedPeriod = auto;
         el.periodSelect.value = auto;
         persist();
@@ -885,11 +942,17 @@
 
     function bindEvents() {
       el.scheduleMode.value = state.scheduleMode;
+      el.trackSelect.value = state.track || 'A';
       el.maxMinutes.value = state.maxMinutes;
 
       el.scheduleMode.addEventListener('change', () => {
         state.scheduleMode = el.scheduleMode.value;
         syncPeriodToAutoIfPossible();
+        persist();
+        render();
+      });
+      el.trackSelect.addEventListener('change', () => {
+        state.track = el.trackSelect.value;
         persist();
         render();
       });
