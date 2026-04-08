@@ -850,12 +850,12 @@
           </div>
           <div style="display:flex; gap:6px; flex-wrap:wrap;">
             <button type="button" ${(restriction.blocked || isLocked) ? 'disabled' : ''}><i class="fa-solid fa-person-walking-arrow-right"></i> Send</button>
-            <button type="button" class="secondary" ${(isLocked || restriction.blocked) ? 'disabled' : ''}><i class="fa-solid fa-bell"></i> Request</button>
+            <button type="button" class="secondary" ${isLocked ? 'disabled' : ''}><i class="fa-solid fa-bell"></i> Request</button>
           </div>
         `;
         const buttons = card.querySelectorAll('button');
         if (!(restriction.blocked || isLocked)) buttons[0].onclick = () => sendStudentOut(name);
-        if (!(isLocked || restriction.blocked)) buttons[1].onclick = () => addRequest(name);
+        if (!isLocked) buttons[1].onclick = () => addRequest(name);
         el.studentGrid.appendChild(card);
       });
 
