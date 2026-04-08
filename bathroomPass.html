@@ -565,6 +565,20 @@
       localStorage.setItem(storageKey, JSON.stringify(state));
     }
 
+    function logDbEvent(eventType, extra = {}) {
+      fetch('http://localhost:8787/api/events', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          teacher_id: teacherId,
+          period_label: state.selectedPeriod,
+          event_type: eventType,
+          event_time: new Date().toISOString(),
+          ...extra
+        })
+      }).catch(() => {});
+    }
+
     function toMinutes(timeString) {
       const [h, m] = timeString.split(':').map(Number);
       return h * 60 + m;
@@ -666,6 +680,7 @@
       record.trips += 1;
       p.counts[name] = record;
       persist();
+      logDbEvent('sent_out', { student_name: name, metadata: { max_out_allowed: maxOut } });
       render();
       return true;
     }
@@ -678,6 +693,7 @@
       if (alreadyQueued) return;
       p.requests.push({ name, requestedAt: Date.now() });
       persist();
+      logDbEvent('request_added', { student_name: name });
       render();
     }
 
@@ -688,6 +704,7 @@
       if (!request) return;
       p.onDeck.push({ name: request.name, requestedAt: request.requestedAt, addedToDeckAt: Date.now() });
       persist();
+      logDbEvent('moved_to_on_deck', { student_name: request.name });
       render();
     }
 
@@ -696,6 +713,7 @@
       if (p.locked) return;
       p.requests.splice(index, 1);
       persist();
+      logDbEvent('request_removed');
       render();
     }
 
@@ -717,6 +735,7 @@
       if (p.locked) return;
       p.onDeck.splice(index, 1);
       persist();
+      logDbEvent('on_deck_removed');
       render();
     }
 
@@ -743,6 +762,7 @@
       record.totalSeconds += duration;
       p.counts[entry.name] = record;
       persist();
+      logDbEvent('returned', { student_name: entry.name, duration_seconds: duration });
       render();
     }
 

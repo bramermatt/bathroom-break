@@ -2,6 +2,8 @@
 
 Use this guide to customize `bathroomPass.html` for any teacher.
 
+Quick option: use `teacher-portal/index.html` to paste your data and generate a teacher-specific link automatically.
+
 ---
 
 ## 1) Teacher Setup Questions (Fill this out first)

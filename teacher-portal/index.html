@@ -24,6 +24,7 @@
   <div class="wrap">
     <div class="card">
       <h1>Bathroom Break — Teacher Link Setup</h1>
+      <p class="muted">Paste your periods and students, click save, then share your own teacher link (includes config for other devices).</p>
       <p class="muted">Paste your periods and students, click save, then share your own teacher link.</p>
     </div>
 
@@ -33,6 +34,21 @@
         <input id="teacherId" placeholder="example: ms-johnson" />
       </div>
       <div>
+        <label for="planningPeriod">Planning period</label>
+        <select id="planningPeriod">
+          <option value="Period 1">Period 1</option>
+          <option value="Period 2">Period 2</option>
+          <option value="Period 3">Period 3</option>
+          <option value="Period 4" selected>Period 4</option>
+          <option value="Period 5">Period 5</option>
+          <option value="Period 6">Period 6</option>
+          <option value="Period 7">Period 7</option>
+          <option value="custom">Custom label...</option>
+        </select>
+      </div>
+      <div>
+        <label for="planningLabel">Custom planning label (optional)</label>
+        <input id="planningLabel" value="" placeholder="e.g. Advisory / PLC" />
         <label for="planningLabel">Planning period label</label>
         <input id="planningLabel" value="Planning" />
       </div>
@@ -85,6 +101,7 @@ Student, Four</textarea>
     const el = {
       teacherId: document.getElementById('teacherId'),
       planningLabel: document.getElementById('planningLabel'),
+      planningPeriod: document.getElementById('planningPeriod'),
       periodOrder: document.getElementById('periodOrder'),
       titleName: document.getElementById('titleName'),
       scheduleText: document.getElementById('scheduleText'),
@@ -100,6 +117,17 @@ Student, Four</textarea>
       return (el.teacherId.value || '').trim().toLowerCase().replace(/[^a-z0-9-_]/g, '');
     }
 
+    function encodeConfig(config) {
+      return btoa(unescape(encodeURIComponent(JSON.stringify(config))));
+    }
+
+    function teacherLink(config) {
+      const id = normalizedTeacherId();
+      if (!id) return '';
+      const appUrl = new URL('/bathroomPass.html', window.location.origin);
+      const base = `${appUrl.toString()}?teacher=${encodeURIComponent(id)}`;
+      if (!config) return base;
+      return `${base}&config=${encodeURIComponent(encodeConfig(config))}`;
     function teacherLink() {
       const id = normalizedTeacherId();
       if (!id) return '';
@@ -137,6 +165,9 @@ Student, Four</textarea>
       if (!id) throw new Error('Teacher ID is required.');
 
       const config = {
+        planningLabel: el.planningPeriod.value === 'custom'
+          ? (el.planningLabel.value.trim() || 'Planning')
+          : el.planningPeriod.value,
         planningLabel: el.planningLabel.value.trim() || 'Planning',
         periodOrder: el.periodOrder.value.split(',').map(s => s.trim()).filter(Boolean),
         regularSchedule: parseSchedule(el.scheduleText.value),
@@ -145,6 +176,17 @@ Student, Four</textarea>
       };
 
       localStorage.setItem(`bathroom-break-config-${id}`, JSON.stringify(config));
+      fetch('http://localhost:8787/api/teacher-portals', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          teacher_id: id,
+          teacher_title: config.teacherTitle,
+          planning_label: config.planningLabel,
+          period_order: config.periodOrder
+        })
+      }).catch(() => {});
+      return { id, config, link: teacherLink(config) };
       return teacherLink();
     }
 
@@ -156,6 +198,9 @@ Student, Four</textarea>
 
     el.saveBtn.addEventListener('click', () => {
       try {
+        const result = saveConfig();
+        el.status.textContent = `Saved! Share this link: ${result.link}`;
+        el.linkOut.textContent = result.link;
         const link = saveConfig();
         el.status.textContent = `Saved! Use this link: ${link}`;
         refreshLink();
@@ -165,6 +210,23 @@ Student, Four</textarea>
     });
 
     el.openBtn.addEventListener('click', () => {
+      try {
+        const result = saveConfig();
+        window.location.href = result.link;
+      } catch (err) {
+        el.status.textContent = err.message;
+      }
+    });
+
+    el.copyBtn.addEventListener('click', async () => {
+      try {
+        const result = saveConfig();
+        await navigator.clipboard.writeText(result.link);
+        el.status.textContent = 'Teacher link copied (with config).';
+        el.linkOut.textContent = result.link;
+      } catch (err) {
+        el.status.textContent = err.message;
+      }
       const link = teacherLink();
       if (!link) return;
       window.open(link, '_blank');
