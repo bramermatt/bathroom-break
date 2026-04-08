@@ -4,6 +4,13 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Bathroom Break Tracker</title>
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+    integrity="sha512-SnH5WK+bZxgPHs44uWix+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkR4j8YdLJgyAHIhR35VZc2oM/gI1wP4R5nQ=="
+    crossorigin="anonymous"
+    referrerpolicy="no-referrer"
+  />
   <style>
     :root {
       --bg: #f3f6fb;
@@ -25,6 +32,8 @@
       font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
       background: var(--bg);
       color: var(--text);
+      height: 100vh;
+      overflow: hidden;
     }
 
     .app {
@@ -33,6 +42,7 @@
       padding: 20px;
       display: grid;
       gap: 16px;
+      height: 100vh;
     }
 
     .panel {
@@ -123,14 +133,19 @@
       grid-template-columns: 1.2fr 0.9fr;
       gap: 16px;
       align-items: start;
+      min-height: 0;
+      height: calc(100vh - 250px);
     }
+
+    .main > .panel, .live > .panel { min-height: 0; }
 
     .student-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
       gap: 10px;
       margin-top: 12px;
-      max-height: 470px;
+      max-height: none;
+      height: calc(100% - 70px);
       overflow: auto;
       padding-right: 4px;
     }
@@ -172,7 +187,7 @@
       display: grid;
       gap: 8px;
       margin-top: 10px;
-      max-height: 220px;
+      max-height: 170px;
       overflow: auto;
     }
     .queue-item {
@@ -196,7 +211,7 @@
     }
     .queue-item .left small { color: var(--muted); }
     .queue-item .actions { display: flex; gap: 6px; }
-    .queue-item .actions button { padding: 6px 8px; font-size: 0.82rem; }
+    .queue-item .actions button { padding: 6px 8px; font-size: 0.82rem; display:flex; align-items:center; gap:6px; }
 
     .out-card {
       border: 1px solid #ffd9d9;
@@ -230,7 +245,7 @@
 
     th { color: var(--muted); font-weight: 600; font-size: 0.8rem; }
 
-    .history-wrap { max-height: 280px; overflow: auto; margin-top: 8px; }
+    .history-wrap { max-height: 180px; overflow: auto; margin-top: 8px; }
 
     .warn {
       color: #8a5a00;
@@ -244,8 +259,11 @@
     details summary { cursor: pointer; font-weight: 600; }
 
     @media (max-width: 1050px) {
+      body { overflow: auto; height: auto; }
+      .app { height: auto; }
       .top, .main { grid-template-columns: 1fr; }
-      .student-grid { max-height: none; }
+      .main { height: auto; }
+      .student-grid { max-height: none; height: auto; }
     }
   </style>
 </head>
@@ -276,6 +294,7 @@
           </div>
 
           <button id="clearPeriod" class="danger">Reset This Period Data</button>
+          <button id="toggleSchedulePanel" class="secondary">Show Alternate Schedule</button>
         </div>
 
         <div class="period-pill" id="periodPill"></div>
@@ -301,16 +320,14 @@
       </div>
     </section>
 
-    <section class="panel">
-      <details>
-        <summary>Alternate Schedule Editor (for your second copy/current schedule)</summary>
+    <section class="panel" id="schedulePanel" style="display:none;">
+        <h3>Alternate Schedule Editor (for your second copy/current schedule)</h3>
         <p class="subtle" style="margin:8px 0;">Use HH:MM 24-hour format. Example: 08:05. Period 4 is planning only and not tracked.</p>
         <textarea id="alternateEditor" rows="8" style="width:100%; margin-top:8px;"></textarea>
         <div style="margin-top:8px; display:flex; gap:8px; flex-wrap: wrap;">
           <button id="saveAlternate" class="success">Save Alternate Schedule</button>
           <button id="resetAlternate" class="secondary">Reset Alternate to Default</button>
         </div>
-      </details>
     </section>
 
     <section class="main">
@@ -422,6 +439,8 @@
       onDeckContainer: document.getElementById('onDeckContainer'),
       outContainer: document.getElementById('outContainer'),
       historyBody: document.getElementById('historyBody'),
+      schedulePanel: document.getElementById('schedulePanel'),
+      toggleSchedulePanel: document.getElementById('toggleSchedulePanel'),
       leaveWindowMsg: document.getElementById('leaveWindowMsg'),
       clearPeriod: document.getElementById('clearPeriod'),
       singleOutMsg: document.getElementById('singleOutMsg'),
@@ -695,8 +714,8 @@
             <span class="chip">Total: ${formatDuration(rec.totalSeconds)}</span>
           </div>
           <div style="display:flex; gap:6px; flex-wrap:wrap;">
-            <button type="button" ${restriction.blocked ? 'disabled' : ''}>Send to RR</button>
-            <button type="button" class="secondary">Add Request</button>
+            <button type="button" ${restriction.blocked ? 'disabled' : ''}><i class="fa-solid fa-person-walking-arrow-right"></i> Send</button>
+            <button type="button" class="secondary"><i class="fa-solid fa-bell"></i> Request</button>
           </div>
         `;
         const buttons = card.querySelectorAll('button');
@@ -722,8 +741,8 @@
               <small>Requested: ${formatClock(request.requestedAt)}</small>
             </div>
             <div class="actions">
-              <button type="button" class="success">Put On Deck</button>
-              <button type="button" class="danger">Remove</button>
+              <button type="button" class="success"><i class="fa-solid fa-list-ol"></i> On Deck</button>
+              <button type="button" class="danger"><i class="fa-solid fa-xmark"></i> Remove</button>
             </div>
           `;
           const actions = row.querySelectorAll('button');
@@ -746,8 +765,8 @@
               <small>Queued: ${formatClock(student.addedToDeckAt || Date.now())}</small>
             </div>
             <div class="actions">
-              <button type="button" ${restriction.blocked ? 'disabled' : ''}>Send Now</button>
-              <button type="button" class="danger">Remove</button>
+              <button type="button" ${restriction.blocked ? 'disabled' : ''}><i class="fa-solid fa-share"></i> Send</button>
+              <button type="button" class="danger"><i class="fa-solid fa-xmark"></i> Remove</button>
             </div>
           `;
           const actions = row.querySelectorAll('button');
@@ -827,6 +846,11 @@
 
       el.studentSearch.addEventListener('input', render);
       el.clearPeriod.addEventListener('click', resetCurrentPeriod);
+      el.toggleSchedulePanel.addEventListener('click', () => {
+        const isHidden = el.schedulePanel.style.display === 'none';
+        el.schedulePanel.style.display = isHidden ? 'block' : 'none';
+        el.toggleSchedulePanel.textContent = isHidden ? 'Hide Alternate Schedule' : 'Show Alternate Schedule';
+      });
 
       el.saveAlternate.addEventListener('click', () => {
         const parsed = parseScheduleEditor(el.alternateEditor.value);
