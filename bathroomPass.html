@@ -308,8 +308,8 @@
         <h3>Today</h3>
         <p class="subtle" id="todayDate"></p>
         <p class="subtle" id="nowTime" style="margin-top:4px;"></p>
-        <p class="subtle" id="countdownOpen" style="margin-top:6px;">T-minus to bathroom release: --:--</p>
-        <p class="subtle" id="countdownClose">T-minus until cannot leave: --:--</p>
+        <p class="subtle" id="countdownOpen" style="margin-top:6px;"></p>
+        <p class="subtle" id="countdownClose"></p>
         <div class="stats">
           <div class="stat">
             <div class="label">Current Period Trips</div>
@@ -865,26 +865,25 @@
       });
       const students = fullRoster.filter(name => name.toLowerCase().includes(search));
       el.studentGrid.innerHTML = '';
-      const countdownPeriod = MANAGED_PERIODS.includes(autoLabel) ? autoLabel : state.selectedPeriod;
-      const slot = getSlotForPeriod(countdownPeriod);
+      const slot = getSlotForPeriod(state.selectedPeriod);
       const nowMin = nowMinutes();
       const bathroomSegments = (slot?.segments || []).filter(s => s.kind === 'bathroom_window');
       if (slot && bathroomSegments.length > 0) {
         const nextWindow = bathroomSegments.find(s => nowMin < toMinutes(s.start));
         const activeWindow = bathroomSegments.find(s => nowMin >= toMinutes(s.start) && nowMin <= toMinutes(s.end));
         if (activeWindow) {
-          el.countdownOpen.textContent = `T-minus to bathroom release (${countdownPeriod}): NOW`;
-          el.countdownClose.textContent = `T-minus until cannot leave (${countdownPeriod}): ${formatMmSsFromMinutesDelta(toMinutes(activeWindow.end) - nowMin)}`;
+          el.countdownOpen.textContent = '';
+          el.countdownClose.textContent = `T-minus until cannot leave: ${formatMmSsFromMinutesDelta(toMinutes(activeWindow.end) - nowMin)}`;
         } else if (nextWindow) {
-          el.countdownOpen.textContent = `T-minus to bathroom release (${countdownPeriod}): ${formatMmSsFromMinutesDelta(toMinutes(nextWindow.start) - nowMin)}`;
-          el.countdownClose.textContent = `T-minus until cannot leave (${countdownPeriod}): --:--`;
+          el.countdownOpen.textContent = `T-minus to bathroom release: ${formatMmSsFromMinutesDelta(toMinutes(nextWindow.start) - nowMin)}`;
+          el.countdownClose.textContent = '';
         } else {
-          el.countdownOpen.textContent = `T-minus to bathroom release (${countdownPeriod}): --:--`;
-          el.countdownClose.textContent = `T-minus until cannot leave (${countdownPeriod}): 00:00`;
+          el.countdownOpen.textContent = '';
+          el.countdownClose.textContent = 'Bathroom window has passed for this period.';
         }
       } else {
-        el.countdownOpen.textContent = 'T-minus to bathroom release: --:--';
-        el.countdownClose.textContent = 'T-minus until cannot leave: --:--';
+        el.countdownOpen.textContent = '';
+        el.countdownClose.textContent = '';
       }
 
       if (futureLocked) {
