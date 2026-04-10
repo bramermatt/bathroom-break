@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mr. Bramer Bathroom Pass</title>
+  <style>
+    :root {
+      --bg:#f2f6ff; --card:#fff; --text:#11243f; --muted:#5b6f89;
+      --accent:#2d6ef4; --accent-soft:#eaf2ff; --warn:#8a5a00;
+      --warn-bg:#fff6df; --line:#dbe7fb; --shadow:0 10px 25px rgba(17,36,63,.08);
+    }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background:var(--bg); color:var(--text); }
+    .app { max-width:1300px; margin:0 auto; padding:16px; display:grid; gap:14px; }
+    .card { background:var(--card); border-radius:14px; box-shadow:var(--shadow); padding:14px; }
+    .top { display:grid; grid-template-columns: 2fr 1fr; gap:12px; }
+    .controls { display:flex; gap:10px; flex-wrap:wrap; align-items:end; margin-top:8px; }
+    .field { display:grid; gap:6px; }
+    label { font-size:.82rem; color:var(--muted); }
+    select,input,button { border-radius:10px; border:1px solid #cddaf0; padding:9px 10px; font:inherit; }
+    button { border:none; background:var(--accent); color:#fff; font-weight:700; cursor:pointer; }
+    button:disabled { background:#9ba8bc; cursor:not-allowed; }
+    .muted { color:var(--muted); }
+    .stats { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-top:10px; }
+    .stat { background:#f8fbff; border:1px solid #e4edff; border-radius:10px; padding:10px; }
+    .stat .k { font-size:.78rem; color:var(--muted); }
+    .stat .v { font-size:1.3rem; font-weight:800; }
+    .countdown { margin-top:10px; border:1px solid #ccdfff; background:var(--accent-soft); border-radius:12px; padding:12px; font-size:1.3rem; font-weight:900; }
+    .warn { margin-top:8px; background:var(--warn-bg); border:1px solid #ffe3a8; color:var(--warn); border-radius:10px; padding:9px; }
+    .main { display:grid; grid-template-columns: 1.25fr .95fr; gap:12px; }
+    .students-wrap { display:grid; gap:8px; }
+    .students { display:grid; grid-template-columns: repeat(auto-fill,minmax(200px,1fr)); gap:8px; max-height:62vh; overflow:auto; padding-right:4px; }
+    .student { border:1px solid var(--line); background:#f7faff; border-radius:10px; padding:9px; display:grid; gap:8px; }
+    .name { font-weight:700; font-size:.95rem; }
+    .row { display:flex; gap:6px; flex-wrap:wrap; }
+    .pill { display:inline-block; font-size:.74rem; border-radius:999px; padding:3px 8px; background:#e8f0fd; color:#21406e; }
+    .side { display:grid; gap:12px; }
+    .list { display:grid; gap:8px; max-height:31vh; overflow:auto; }
+    .item { border:1px solid var(--line); border-radius:9px; padding:8px; display:flex; justify-content:space-between; align-items:center; gap:8px; }
+    .timer { font-weight:900; font-variant-numeric: tabular-nums; }
+    @media (max-width: 980px){ .top,.main { grid-template-columns:1fr; } .students { max-height:none; } .list { max-height:none; } }
+  </style>
+</head>
+<body>
+<div class="app">
+  <section class="card top">
+    <div>
+      <h1>Mr. Bramer Bathroom Pass</h1>
+      <p class="muted" id="today"></p>
+      <div class="controls">
+        <div class="field">
+          <label for="periodSelect">Period</label>
+          <select id="periodSelect"></select>
+        </div>
+        <button id="syncNow">Sync to Current Period</button>
+      </div>
+      <div class="countdown" id="countdown">T-minus: --:--</div>
+      <p class="warn" id="windowMsg" style="display:none;"></p>
+    </div>
+    <div>
+      <h3>Stats</h3>
+      <div class="stats">
+        <div class="stat"><div class="k">Trips (selected period)</div><div class="v" id="tripCount">0</div></div>
+        <div class="stat"><div class="k">Out now</div><div class="v" id="outCount">0</div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="main">
+    <div class="card students-wrap">
+      <h3>Students</h3>
+      <input id="search" placeholder="Search student" />
+      <div class="students" id="students"></div>
+    </div>
+
+    <div class="side">
+      <section class="card">
+        <h3>Requests</h3>
+        <div id="requests" class="list"></div>
+      </section>
+      <section class="card">
+        <h3>Out of Room</h3>
+        <div id="out" class="list"></div>
+      </section>
+    </div>
+  </section>
+</div>
+
+<script>
+const rosters = {
+  "Period 1": ["Beason, Kyrell","Blevins, Faith","Bringham, Nathaniel","Buckner, Bevyn","Carson, Cash","Cruz Lemus, Katya","Damian, Miguel","Dansby, Sean","Fountain, Akeelah","Guadalupe Flores, Alexis","Hatton, Cayden","Haymer, Ki'Avoni","Hightower, Austin","Jordan, Mariah","LaMaster, Mason","Morales, Landon","PadillaThornton, Zachariah","Palemon, Luis","Patrick, Micah","Richardson, Steven","Riddlespriger, Marley","Santana, Jason","Segebart, Chasity","Sharpnack, Alissa","Vowell, Layla"],
+  "Period 2": ["Booker, Milana","Burnell, Logan","Chavez Morales, Alfredo","Durbin, Blake","Fountain, Isaac","Garner, Marquel","Hargett, Easton","Haskins, Caelan","Hernandez, Myshielis","Holman, Chase","Lewis, Ava","Magallon, Heily","Miller, Bryson","Napier, Braylen","Pasley, Elijah","Rojas, Jovanny","Santillan, Emiliano","Shircliff, Madelyn","Stephens, Rowaan","Williams, Anjalese","Wilson, Tristin"],
+  "Period 3": ["Alokoa, Kobesasi-Ismael","Alvarenga, Haylee","Asare, Kingsley","Beckam, Jackson","Early, Samson","Escobar, Jacqueline","Liles, Aminah","Linthicome, Deontae","Miller, Christian","Pulliam, Kenzie","Reed, Terrain","Rubio, Adair","Sparkman, Noah","Wilson, Ty'Tianna","Bobo, Luke","Brown, Brandon","Buckner, Stephen","Conner, Kingston","Fountain, Elijah","Fulkerson, Melody","Greenwade, Jeremiah","Ortiz, Christopher","Parker, Raina","Payne, Jaden","Rozier, Michael","Schilling, Kenshawn"],
+  "Period 5": ["Blevins, Miah","Campos Juarez, Brandon","Dunn, Ari'hya","Gonzalez Rojas, Misael","Greene, Shane","Hernandez Suarez, Santiago","Hicks, Makenzie","Jimenez Hidalgo, Camila","Johnson, Tyren","Jordan, Amiyah","Middleton, Arayiah","Moore, Ayedenn","Newson, Justice","Ricketts, Aiden","Rosas, Rhianna","Smith, Ja'Rayah","Wagner, Aaliyah","Washington, Kori","Wright, Dyamon","Alvarado, Kayleen","Baker, Jeremy","Bratcher, Isaiah","Claros Ramos, Loany","Crosby, Kobe","Eldridge, Madison","Forrest, Jackson","Gaytan, Alistair","Gleitz, Christian","Harper, Kaylee","Hatcher-Daniel, Jae'shaun","Martin, Kaniel","Misic, Aiden","Smith, Ariana","Smith, Spencer","Wickliffe, Tytionna"],
+  "Period 6": ["Amos, Skylan","Anderson, Alyssa","Baggett, Yorel","Brown, Autumn","Brown, Sariya","Coates, Andrew","Cross, Yanaija","Dunn, Samuel","Kannamore-Carter, Ra'janae","Maniloff, Georgia","Marshall, Maya","Medrano, Lygaci","Moorman, Dionna","Nash, Mekhi","Parham, Symphony","Pena, Daylin","Shelton, Arion","Thomas, Ja'Miracle","Thompson, Lorenzo"],
+  "Period 7": ["Alvarez Madrid, Luis","Bailey, Breanna","Benn, Mya","Britto, Emery","Cannon, Evan","Copas, Stephanie","Culver, Chase","Delgado, Isaac","Eppler, Robert","Gary, Nevaeh","Gruver, Michael","Hinkle, Aria","Jones, Chloe","Jones-Turner, Reno","Pena Canseco, Jose","Ross, Baylee","Santana, Jeiran","Santos, Edgar","Young, Braylen","Black, Arianna","Brown, Riyhlen","Conde, Eli","Ellery, Detrick","Finch, Brycen","Humphreys, Rylan","Mills, Andrew","Piccuito, Hannah","Spaulding, Easton","Vazquez, Fidel"]
+};
+
+const schedule = [
+  { label:'Period 1', start:'07:45', end:'08:30', segments:[['07:45','08:00','no'],['08:00','08:15','yes'],['08:15','08:30','no']] },
+  { label:'Period 2', start:'08:35', end:'09:20', segments:[['08:35','08:50','no'],['08:50','09:05','yes'],['09:05','09:20','no']] },
+  { label:'Period 3', start:'09:25', end:'10:10', segments:[['09:25','09:40','no'],['09:40','09:55','yes'],['09:55','10:10','no']] },
+  { label:'Period 4', start:'10:15', end:'11:50', segments:[] },
+  { label:'Period 5', start:'11:55', end:'12:40', segments:[['11:55','12:10','no'],['12:10','12:25','yes'],['12:25','12:40','no']] },
+  { label:'Period 6', start:'12:45', end:'13:30', segments:[['12:45','13:00','no'],['13:00','13:15','yes'],['13:15','13:30','no']] },
+  { label:'Period 7', start:'13:35', end:'14:20', segments:[['13:35','13:50','no'],['13:50','14:05','yes'],['14:05','14:20','no']] },
+];
+
+const periods = ['Period 1','Period 2','Period 3','Period 5','Period 6','Period 7'];
+const state = Object.fromEntries(periods.map(p => [p,{requests:[],out:[],count:0}]));
+const sel = document.getElementById('periodSelect');
+periods.forEach(p=>{const o=document.createElement('option');o.value=p;o.textContent=p;sel.appendChild(o);});
+
+function toSec(hm){const[a,b]=hm.split(':').map(Number);return a*3600+b*60;}
+function nowSec(){const d=new Date();return d.getHours()*3600+d.getMinutes()*60+d.getSeconds();}
+function fmt(sec){sec=Math.max(0,Math.floor(sec));return `${String(Math.floor(sec/60)).padStart(2,'0')}:${String(sec%60).padStart(2,'0')}`;}
+function activePeriod(){const n=nowSec();return schedule.find(s=>n>=toSec(s.start)&&n<=toSec(s.end))?.label || periods[0];}
+
+function periodRule(period){
+  const slot=schedule.find(s=>s.label===period); if(!slot) return {ok:false,msg:'No schedule',countdown:'--:--'};
+  const n=nowSec();
+  const seg=(slot.segments||[]).find(([a,b])=>n>=toSec(a)&&n<=toSec(b));
+  if(!seg) return {ok:false,msg:'Not in bathroom window',countdown:'--:--'};
+  const [a,b,kind]=seg;
+  if(kind==='yes') return {ok:true,msg:'Bathroom window open',countdown:fmt(toSec(b)-n)};
+  const next=(slot.segments||[]).find(([a,,k])=>k==='yes' && n<toSec(a));
+  if(next) return {ok:false,msg:'Bathroom not open yet',countdown:fmt(toSec(next[0])-n)};
+  return {ok:false,msg:'Bathroom closed for this period',countdown:'00:00'};
+}
+
+function render(){
+  const p=sel.value;
+  const list=[...(rosters[p]||[])].sort((a,b)=>(a.split(',')[0]||'').localeCompare(b.split(',')[0]||''));
+  const q=document.getElementById('search').value.toLowerCase();
+  const filtered=list.filter(n=>n.toLowerCase().includes(q));
+  const rule=periodRule(p);
+
+  document.getElementById('today').textContent = `${new Date().toLocaleDateString()} • ${new Date().toLocaleTimeString()}`;
+  document.getElementById('countdown').textContent = rule.ok ? `T-minus until cannot leave: ${rule.countdown}` : `T-minus to bathroom release: ${rule.countdown}`;
+  const wm=document.getElementById('windowMsg'); wm.style.display=rule.ok?'none':'block'; wm.textContent=rule.msg;
+  document.getElementById('tripCount').textContent=state[p].count;
+  document.getElementById('outCount').textContent=state[p].out.length;
+
+  const sEl=document.getElementById('students'); sEl.innerHTML='';
+  filtered.forEach(name=>{
+    const d=document.createElement('div'); d.className='student';
+    d.innerHTML=`<div class="name">${name}</div><div class="row"><span class="pill">Trips: ${state[p].count}</span></div><div class="row"><button ${rule.ok?'':'disabled'}>Send</button><button ${rule.ok?'':'disabled'}>Request</button></div>`;
+    const [send,req]=d.querySelectorAll('button');
+    send.onclick=()=>{state[p].out.push({name,start:Date.now()}); state[p].count++; render();};
+    req.onclick=()=>{if(!state[p].requests.find(r=>r.name===name)) state[p].requests.push({name}); render();};
+    sEl.appendChild(d);
+  });
+
+  const rEl=document.getElementById('requests'); rEl.innerHTML='';
+  state[p].requests.forEach((r,i)=>{
+    const d=document.createElement('div'); d.className='item';
+    d.innerHTML=`<span>${r.name}</span><button ${rule.ok?'':'disabled'}>Send</button>`;
+    d.querySelector('button').onclick=()=>{state[p].requests.splice(i,1); state[p].out.push({name:r.name,start:Date.now()}); state[p].count++; render();};
+    rEl.appendChild(d);
+  });
+
+  const oEl=document.getElementById('out'); oEl.innerHTML='';
+  state[p].out.forEach((o,i)=>{
+    const d=document.createElement('div'); d.className='item';
+    d.innerHTML=`<span>${o.name} <span class="timer">${fmt((Date.now()-o.start)/1000)}</span></span><button>Returned</button>`;
+    d.querySelector('button').onclick=()=>{state[p].out.splice(i,1); render();};
+    oEl.appendChild(d);
+  });
+}
+
+document.getElementById('search').addEventListener('input',render);
+sel.addEventListener('change',render);
+document.getElementById('syncNow').onclick=()=>{sel.value=activePeriod(); render();};
+sel.value=activePeriod();
+render();
+setInterval(render,1000);
+</script>
+</body>
+</html>
