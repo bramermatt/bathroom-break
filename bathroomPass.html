@@ -307,6 +307,9 @@
       <div>
         <h3>Today</h3>
         <p class="subtle" id="todayDate"></p>
+        <p class="subtle" id="nowTime" style="margin-top:4px;"></p>
+        <p class="subtle" id="countdownOpen" style="margin-top:6px;"></p>
+        <p class="subtle" id="countdownClose"></p>
         <div class="stats">
           <div class="stat">
             <div class="label">Current Period Trips</div>
@@ -488,6 +491,9 @@
     const el = {
       appTitle: document.getElementById('appTitle'),
       todayDate: document.getElementById('todayDate'),
+      nowTime: document.getElementById('nowTime'),
+      countdownOpen: document.getElementById('countdownOpen'),
+      countdownClose: document.getElementById('countdownClose'),
       scheduleMode: document.getElementById('scheduleMode'),
       trackSelect: document.getElementById('trackSelect'),
       periodSelect: document.getElementById('periodSelect'),
@@ -617,6 +623,23 @@
       return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit' });
     }
 
+    function formatMmSsFromMinutesDelta(minDelta) {
+      const totalSec = Math.max(0, Math.floor(minDelta * 60));
+      const m = Math.floor(totalSec / 60);
+      const s = totalSec % 60;
+      return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }
+
+    function getSlotForPeriod(label) {
+      return getSchedule().find(s => s.label === label);
+    }
+
+    function isSelectedPeriodFutureLocked() {
+      const slot = getSlotForPeriod(state.selectedPeriod);
+      if (!slot) return false;
+      return nowMinutes() < toMinutes(slot.start);
+    }
+
     function currentPeriodData() {
       return state.periods[state.selectedPeriod];
     }
@@ -660,6 +683,10 @@
 
     function sendStudentOut(name) {
       const p = currentPeriodData();
+      if (isSelectedPeriodFutureLocked()) {
+        alert('This period has not started yet.');
+        return false;
+      }
       if (p.locked) {
         alert('This period is locked.');
         return false;
@@ -688,6 +715,7 @@
     function addRequest(name) {
       const p = currentPeriodData();
       if (!name || !p) return;
+      if (isSelectedPeriodFutureLocked()) return;
       if (p.locked) return;
       const alreadyQueued = p.requests.some(r => r.name === name) || p.onDeck.some(o => o.name === name) || p.out.some(o => o.name === name);
       if (alreadyQueued) return;
@@ -699,6 +727,7 @@
 
     function moveRequestToOnDeck(index) {
       const p = currentPeriodData();
+      if (isSelectedPeriodFutureLocked()) return;
       if (p.locked) return;
       const [request] = p.requests.splice(index, 1);
       if (!request) return;
@@ -710,6 +739,7 @@
 
     function removeRequest(index) {
       const p = currentPeriodData();
+      if (isSelectedPeriodFutureLocked()) return;
       if (p.locked) return;
       p.requests.splice(index, 1);
       persist();
@@ -719,6 +749,7 @@
 
     function sendOnDeckToOut(index) {
       const p = currentPeriodData();
+      if (isSelectedPeriodFutureLocked()) return;
       if (p.locked) return;
       const student = p.onDeck[index];
       if (!student) return;
@@ -732,6 +763,7 @@
 
     function removeOnDeck(index) {
       const p = currentPeriodData();
+      if (isSelectedPeriodFutureLocked()) return;
       if (p.locked) return;
       p.onDeck.splice(index, 1);
       persist();
@@ -805,9 +837,11 @@
       const search = el.studentSearch.value.trim().toLowerCase();
       const restriction = getLeaveRestrictionForSelectedPeriod();
       const isLocked = !!current.locked;
+      const futureLocked = isSelectedPeriodFutureLocked();
       const maxOut = Number(restriction.maxOut || 1);
 
       el.todayDate.textContent = new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+      el.nowTime.textContent = `Current time: ${new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit' })}`;
       el.periodPill.textContent = `Auto: ${autoLabel} • Tracking: ${state.selectedPeriod}`;
 
       const allTrips = MANAGED_PERIODS.reduce((sum, period) => {
@@ -831,7 +865,31 @@
       });
       const students = fullRoster.filter(name => name.toLowerCase().includes(search));
       el.studentGrid.innerHTML = '';
-      if (isLocked) {
+      const slot = getSlotForPeriod(state.selectedPeriod);
+      const nowMin = nowMinutes();
+      const bathroomSegments = (slot?.segments || []).filter(s => s.kind === 'bathroom_window');
+      if (slot && bathroomSegments.length > 0) {
+        const nextWindow = bathroomSegments.find(s => nowMin < toMinutes(s.start));
+        const activeWindow = bathroomSegments.find(s => nowMin >= toMinutes(s.start) && nowMin <= toMinutes(s.end));
+        if (activeWindow) {
+          el.countdownOpen.textContent = '';
+          el.countdownClose.textContent = `T-minus until cannot leave: ${formatMmSsFromMinutesDelta(toMinutes(activeWindow.end) - nowMin)}`;
+        } else if (nextWindow) {
+          el.countdownOpen.textContent = `T-minus to bathroom release: ${formatMmSsFromMinutesDelta(toMinutes(nextWindow.start) - nowMin)}`;
+          el.countdownClose.textContent = '';
+        } else {
+          el.countdownOpen.textContent = '';
+          el.countdownClose.textContent = 'Bathroom window has passed for this period.';
+        }
+      } else {
+        el.countdownOpen.textContent = '';
+        el.countdownClose.textContent = '';
+      }
+
+      if (futureLocked) {
+        el.leaveWindowMsg.style.display = 'block';
+        el.leaveWindowMsg.textContent = 'This is a future period. Actions stay disabled until this period starts.';
+      } else if (isLocked) {
         el.leaveWindowMsg.style.display = 'block';
         el.leaveWindowMsg.textContent = 'This period is locked. Sending and queue changes are disabled.';
       } else {
@@ -841,7 +899,7 @@
       students.forEach(name => {
         const rec = current.counts[name] || { trips: 0, totalSeconds: 0 };
         const card = document.createElement('div');
-        card.className = `student ${(restriction.blocked || isLocked) ? 'disabled' : ''}`;
+        card.className = `student ${(restriction.blocked || isLocked || futureLocked) ? 'disabled' : ''}`;
         card.innerHTML = `
           <div class="name">${name}</div>
           <div>
@@ -849,13 +907,13 @@
             <span class="chip">Total: ${formatDuration(rec.totalSeconds)}</span>
           </div>
           <div style="display:flex; gap:6px; flex-wrap:wrap;">
-            <button type="button" ${(restriction.blocked || isLocked) ? 'disabled' : ''}><i class="fa-solid fa-person-walking-arrow-right"></i> Send</button>
-            <button type="button" class="secondary" ${isLocked ? 'disabled' : ''}><i class="fa-solid fa-bell"></i> Request</button>
+            <button type="button" ${(restriction.blocked || isLocked || futureLocked) ? 'disabled' : ''}><i class="fa-solid fa-person-walking-arrow-right"></i> Send</button>
+            <button type="button" class="secondary" ${(isLocked || restriction.blocked || futureLocked) ? 'disabled' : ''}><i class="fa-solid fa-bell"></i> Request</button>
           </div>
         `;
         const buttons = card.querySelectorAll('button');
-        if (!(restriction.blocked || isLocked)) buttons[0].onclick = () => sendStudentOut(name);
-        if (!isLocked) buttons[1].onclick = () => addRequest(name);
+        if (!(restriction.blocked || isLocked || futureLocked)) buttons[0].onclick = () => sendStudentOut(name);
+        if (!(isLocked || restriction.blocked || futureLocked)) buttons[1].onclick = () => addRequest(name);
         el.studentGrid.appendChild(card);
       });
 
@@ -878,12 +936,12 @@
               <small>Requested: ${formatClock(request.requestedAt)}</small>
             </div>
             <div class="actions">
-              <button type="button" class="success" ${isLocked ? 'disabled' : ''}><i class="fa-solid fa-list-ol"></i> On Deck</button>
-              <button type="button" class="danger" ${isLocked ? 'disabled' : ''}><i class="fa-solid fa-xmark"></i> Remove</button>
+              <button type="button" class="success" ${(isLocked || futureLocked) ? 'disabled' : ''}><i class="fa-solid fa-list-ol"></i> On Deck</button>
+              <button type="button" class="danger" ${(isLocked || futureLocked) ? 'disabled' : ''}><i class="fa-solid fa-xmark"></i> Remove</button>
             </div>
           `;
           const actions = row.querySelectorAll('button');
-          if (!isLocked) {
+          if (!(isLocked || futureLocked)) {
             actions[0].onclick = () => moveRequestToOnDeck(index);
             actions[1].onclick = () => removeRequest(index);
           }
@@ -904,13 +962,13 @@
               <small>Queued: ${formatClock(student.addedToDeckAt || Date.now())}</small>
             </div>
             <div class="actions">
-              <button type="button" ${(restriction.blocked || isLocked) ? 'disabled' : ''}><i class="fa-solid fa-share"></i> Send</button>
-              <button type="button" class="danger" ${isLocked ? 'disabled' : ''}><i class="fa-solid fa-xmark"></i> Remove</button>
+              <button type="button" ${(restriction.blocked || isLocked || futureLocked) ? 'disabled' : ''}><i class="fa-solid fa-share"></i> Send</button>
+              <button type="button" class="danger" ${(isLocked || futureLocked) ? 'disabled' : ''}><i class="fa-solid fa-xmark"></i> Remove</button>
             </div>
           `;
           const actions = row.querySelectorAll('button');
-          if (!(restriction.blocked || isLocked)) actions[0].onclick = () => sendOnDeckToOut(index);
-          if (!isLocked) actions[1].onclick = () => removeOnDeck(index);
+          if (!(restriction.blocked || isLocked || futureLocked)) actions[0].onclick = () => sendOnDeckToOut(index);
+          if (!(isLocked || futureLocked)) actions[1].onclick = () => removeOnDeck(index);
           el.onDeckContainer.appendChild(row);
         });
       }
