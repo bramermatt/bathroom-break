@@ -366,11 +366,6 @@
         </section>
 
         <section class="panel">
-          <h2>On Deck</h2>
-          <div id="onDeckContainer" class="queue-list"></div>
-        </section>
-
-        <section class="panel">
           <h2>Currently Out</h2>
           <div id="outContainer" style="margin-top:10px;"></div>
           <p class="warn" id="singleOutMsg" style="margin-top:10px; display:none;">Only one student can be out at a time.</p>
@@ -513,7 +508,6 @@
       studentSearch: document.getElementById('studentSearch'),
       studentGrid: document.getElementById('studentGrid'),
       requestsContainer: document.getElementById('requestsContainer'),
-      onDeckContainer: document.getElementById('onDeckContainer'),
       outContainer: document.getElementById('outContainer'),
       historyBody: document.getElementById('historyBody'),
       schedulePanel: document.getElementById('schedulePanel'),
@@ -543,7 +537,6 @@
         empty.periods[period] = {
           locked: false,
           requests: [],
-          onDeck: [],
           out: [],
           history: [],
           counts: Object.fromEntries((rosters[period] || []).map(name => [name, { trips: 0, totalSeconds: 0 }]))
@@ -561,7 +554,6 @@
           merged.periods[period] = merged.periods[period] || empty.periods[period];
           merged.periods[period].locked = !!merged.periods[period].locked;
           merged.periods[period].requests = merged.periods[period].requests || [];
-          merged.periods[period].onDeck = merged.periods[period].onDeck || [];
           merged.periods[period].counts = merged.periods[period].counts || {};
           (rosters[period] || []).forEach(name => {
             if (!merged.periods[period].counts[name]) {
@@ -733,7 +725,7 @@
       if (!name || !p) return;
       if (isSelectedPeriodFutureLocked()) return;
       if (p.locked) return;
-      const alreadyQueued = p.requests.some(r => r.name === name) || p.onDeck.some(o => o.name === name) || p.out.some(o => o.name === name);
+      const alreadyQueued = p.requests.some(r => r.name === name) || p.out.some(o => o.name === name);
       if (alreadyQueued) return;
       p.requests.push({ name, requestedAt: Date.now() });
       persist();
@@ -741,15 +733,17 @@
       render();
     }
 
-    function moveRequestToOnDeck(index) {
+    function sendRequestOut(index) {
       const p = currentPeriodData();
       if (isSelectedPeriodFutureLocked()) return;
       if (p.locked) return;
-      const [request] = p.requests.splice(index, 1);
+      const request = p.requests[index];
       if (!request) return;
-      p.onDeck.push({ name: request.name, requestedAt: request.requestedAt, addedToDeckAt: Date.now() });
+      const sent = sendStudentOut(request.name);
+      if (!sent) return;
+      p.requests.splice(index, 1);
       persist();
-      logDbEvent('moved_to_on_deck', { student_name: request.name });
+      logDbEvent('request_sent_out', { student_name: request.name });
       render();
     }
 
@@ -760,30 +754,6 @@
       p.requests.splice(index, 1);
       persist();
       logDbEvent('request_removed');
-      render();
-    }
-
-    function sendOnDeckToOut(index) {
-      const p = currentPeriodData();
-      if (isSelectedPeriodFutureLocked()) return;
-      if (p.locked) return;
-      const student = p.onDeck[index];
-      if (!student) return;
-      const sent = sendStudentOut(student.name);
-      if (sent) {
-        p.onDeck.splice(index, 1);
-        persist();
-        render();
-      }
-    }
-
-    function removeOnDeck(index) {
-      const p = currentPeriodData();
-      if (isSelectedPeriodFutureLocked()) return;
-      if (p.locked) return;
-      p.onDeck.splice(index, 1);
-      persist();
-      logDbEvent('on_deck_removed');
       render();
     }
 
@@ -820,7 +790,6 @@
       state.periods[name].out = [];
       state.periods[name].locked = false;
       state.periods[name].requests = [];
-      state.periods[name].onDeck = [];
       state.periods[name].history = [];
       state.periods[name].counts = Object.fromEntries((rosters[name] || []).map(student => [student, { trips: 0, totalSeconds: 0 }]));
       persist();
@@ -885,19 +854,21 @@
       const slot = getSlotForPeriod(countdownPeriod);
       const nowMin = nowMinutes();
       const nowSec = nowSeconds();
-      const bathroomSegments = (slot?.segments || []).filter(s => s.kind === 'bathroom_window');
-      if (slot && bathroomSegments.length > 0) {
-        const nextWindow = bathroomSegments.find(s => nowMin < toMinutes(s.start));
-        const activeWindow = bathroomSegments.find(s => nowMin >= toMinutes(s.start) && nowMin <= toMinutes(s.end));
-        if (activeWindow) {
-          el.countdownBig.textContent = `T-minus until cannot leave (${countdownPeriod}): ${formatMmSsFromSeconds(toSeconds(activeWindow.end) - nowSec)}`;
-        } else if (nextWindow) {
-          el.countdownBig.textContent = `T-minus to bathroom release (${countdownPeriod}): ${formatMmSsFromSeconds(toSeconds(nextWindow.start) - nowSec)}`;
-        } else {
-          el.countdownBig.textContent = `T-minus (${countdownPeriod}): 00:00`;
-        }
+      const segments = (slot?.label === 'Period 4' && state.scheduleMode !== 'delay')
+        ? (period4Tracks[state.track] || slot?.segments || [])
+        : (slot?.segments || []);
+      const activeSegment = segments.find(seg => nowMin >= toMinutes(seg.start) && nowMin <= toMinutes(seg.end));
+      if (slot && activeSegment) {
+        const suffix = activeSegment.kind === 'bathroom_window'
+          ? 'Bathroom window closes'
+          : activeSegment.kind === 'no_bathroom'
+            ? 'Bathroom opens'
+            : 'Segment ends';
+        el.countdownBig.textContent = `${suffix} in ${formatMmSsFromSeconds(toSeconds(activeSegment.end) - nowSec)} (${countdownPeriod})`;
+      } else if (slot) {
+        el.countdownBig.textContent = `${countdownPeriod} in progress`;
       } else {
-        el.countdownBig.textContent = 'T-minus: --:--';
+        el.countdownBig.textContent = 'Schedule timer: --:--';
       }
 
       if (futureLocked) {
@@ -950,40 +921,18 @@
               <small>Requested: ${formatClock(request.requestedAt)}</small>
             </div>
             <div class="actions">
-              <button type="button" class="success" ${(isLocked || futureLocked) ? 'disabled' : ''}><i class="fa-solid fa-list-ol"></i> On Deck</button>
+              <button type="button" class="success" ${(restriction.blocked || isLocked || futureLocked) ? 'disabled' : ''}><i class="fa-solid fa-share"></i> Send</button>
               <button type="button" class="danger" ${(isLocked || futureLocked) ? 'disabled' : ''}><i class="fa-solid fa-xmark"></i> Remove</button>
             </div>
           `;
           const actions = row.querySelectorAll('button');
+          if (!(restriction.blocked || isLocked || futureLocked)) {
+            actions[0].onclick = () => sendRequestOut(index);
+          }
           if (!(isLocked || futureLocked)) {
-            actions[0].onclick = () => moveRequestToOnDeck(index);
             actions[1].onclick = () => removeRequest(index);
           }
           el.requestsContainer.appendChild(row);
-        });
-      }
-
-      el.onDeckContainer.innerHTML = '';
-      if (current.onDeck.length === 0) {
-        el.onDeckContainer.innerHTML = '<p class="subtle">No one on deck.</p>';
-      } else {
-        current.onDeck.forEach((student, index) => {
-          const row = document.createElement('div');
-          row.className = 'queue-item';
-          row.innerHTML = `
-            <div class="left">
-              <strong>${index + 1}. ${student.name}</strong>
-              <small>Queued: ${formatClock(student.addedToDeckAt || Date.now())}</small>
-            </div>
-            <div class="actions">
-              <button type="button" ${(restriction.blocked || isLocked || futureLocked) ? 'disabled' : ''}><i class="fa-solid fa-share"></i> Send</button>
-              <button type="button" class="danger" ${(isLocked || futureLocked) ? 'disabled' : ''}><i class="fa-solid fa-xmark"></i> Remove</button>
-            </div>
-          `;
-          const actions = row.querySelectorAll('button');
-          if (!(restriction.blocked || isLocked || futureLocked)) actions[0].onclick = () => sendOnDeckToOut(index);
-          if (!(isLocked || futureLocked)) actions[1].onclick = () => removeOnDeck(index);
-          el.onDeckContainer.appendChild(row);
         });
       }
 
