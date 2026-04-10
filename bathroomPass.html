@@ -126,6 +126,16 @@
     }
     .stat .label { font-size: 0.8rem; color: var(--muted); }
     .stat .value { font-size: 1.2rem; font-weight: 700; }
+    .countdown-big {
+      margin-top: 10px;
+      padding: 10px;
+      border-radius: 10px;
+      background: #eef4ff;
+      border: 1px solid #d6e5ff;
+      font-size: 1.2rem;
+      font-weight: 800;
+      color: #1d3f7a;
+    }
 
     .main {
       display: grid;
@@ -308,8 +318,6 @@
         <h3>Today</h3>
         <p class="subtle" id="todayDate"></p>
         <p class="subtle" id="nowTime" style="margin-top:4px;"></p>
-        <p class="subtle" id="countdownOpen" style="margin-top:6px;"></p>
-        <p class="subtle" id="countdownClose"></p>
         <div class="stats">
           <div class="stat">
             <div class="label">Current Period Trips</div>
@@ -324,6 +332,7 @@
             <div class="value" id="allTrips">0</div>
           </div>
         </div>
+        <div id="countdownBig" class="countdown-big">T-minus: --:--</div>
       </div>
     </section>
 
@@ -492,8 +501,7 @@
       appTitle: document.getElementById('appTitle'),
       todayDate: document.getElementById('todayDate'),
       nowTime: document.getElementById('nowTime'),
-      countdownOpen: document.getElementById('countdownOpen'),
-      countdownClose: document.getElementById('countdownClose'),
+      countdownBig: document.getElementById('countdownBig'),
       scheduleMode: document.getElementById('scheduleMode'),
       trackSelect: document.getElementById('trackSelect'),
       periodSelect: document.getElementById('periodSelect'),
@@ -594,6 +602,10 @@
       const d = new Date();
       return d.getHours() * 60 + d.getMinutes();
     }
+    function nowSeconds() {
+      const d = new Date();
+      return (d.getHours() * 3600) + (d.getMinutes() * 60) + d.getSeconds();
+    }
 
     function getSchedule() {
       if (state.scheduleMode === 'alternate') return state.alternateSchedule;
@@ -623,11 +635,15 @@
       return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit' });
     }
 
-    function formatMmSsFromMinutesDelta(minDelta) {
-      const totalSec = Math.max(0, Math.floor(minDelta * 60));
+    function formatMmSsFromSeconds(secDelta) {
+      const totalSec = Math.max(0, Math.floor(secDelta));
       const m = Math.floor(totalSec / 60);
       const s = totalSec % 60;
       return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }
+    function toSeconds(timeString) {
+      const [h, m] = timeString.split(':').map(Number);
+      return (h * 3600) + (m * 60);
     }
 
     function getSlotForPeriod(label) {
@@ -865,25 +881,23 @@
       });
       const students = fullRoster.filter(name => name.toLowerCase().includes(search));
       el.studentGrid.innerHTML = '';
-      const slot = getSlotForPeriod(state.selectedPeriod);
+      const countdownPeriod = MANAGED_PERIODS.includes(autoLabel) ? autoLabel : state.selectedPeriod;
+      const slot = getSlotForPeriod(countdownPeriod);
       const nowMin = nowMinutes();
+      const nowSec = nowSeconds();
       const bathroomSegments = (slot?.segments || []).filter(s => s.kind === 'bathroom_window');
       if (slot && bathroomSegments.length > 0) {
         const nextWindow = bathroomSegments.find(s => nowMin < toMinutes(s.start));
         const activeWindow = bathroomSegments.find(s => nowMin >= toMinutes(s.start) && nowMin <= toMinutes(s.end));
         if (activeWindow) {
-          el.countdownOpen.textContent = '';
-          el.countdownClose.textContent = `T-minus until cannot leave: ${formatMmSsFromMinutesDelta(toMinutes(activeWindow.end) - nowMin)}`;
+          el.countdownBig.textContent = `T-minus until cannot leave (${countdownPeriod}): ${formatMmSsFromSeconds(toSeconds(activeWindow.end) - nowSec)}`;
         } else if (nextWindow) {
-          el.countdownOpen.textContent = `T-minus to bathroom release: ${formatMmSsFromMinutesDelta(toMinutes(nextWindow.start) - nowMin)}`;
-          el.countdownClose.textContent = '';
+          el.countdownBig.textContent = `T-minus to bathroom release (${countdownPeriod}): ${formatMmSsFromSeconds(toSeconds(nextWindow.start) - nowSec)}`;
         } else {
-          el.countdownOpen.textContent = '';
-          el.countdownClose.textContent = 'Bathroom window has passed for this period.';
+          el.countdownBig.textContent = `T-minus (${countdownPeriod}): 00:00`;
         }
       } else {
-        el.countdownOpen.textContent = '';
-        el.countdownClose.textContent = '';
+        el.countdownBig.textContent = 'T-minus: --:--';
       }
 
       if (futureLocked) {

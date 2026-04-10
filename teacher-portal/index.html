@@ -125,10 +125,6 @@ Student, Four</textarea>
       const base = `${appUrl.toString()}?teacher=${encodeURIComponent(id)}`;
       if (!config) return base;
       return `${base}&config=${encodeURIComponent(encodeConfig(config))}`;
-    function teacherLink() {
-      const id = normalizedTeacherId();
-      if (!id) return '';
-      return `${window.location.origin}${window.location.pathname.replace('/teacher-portal/index.html', '/bathroomPass.html')}?teacher=${encodeURIComponent(id)}`;
     }
 
     function parseSchedule(text) {
@@ -165,7 +161,6 @@ Student, Four</textarea>
         planningLabel: el.planningPeriod.value === 'custom'
           ? (el.planningLabel.value.trim() || 'Planning')
           : el.planningPeriod.value,
-        planningLabel: el.planningLabel.value.trim() || 'Planning',
         periodOrder: el.periodOrder.value.split(',').map(s => s.trim()).filter(Boolean),
         regularSchedule: parseSchedule(el.scheduleText.value),
         rosters: parseRosters(el.rosterText.value),
@@ -184,7 +179,6 @@ Student, Four</textarea>
         })
       }).catch(() => {});
       return { id, config, link: teacherLink(config) };
-      return teacherLink();
     }
 
     function refreshLink() {
@@ -198,9 +192,6 @@ Student, Four</textarea>
         const result = saveConfig();
         el.status.textContent = `Saved! Share this link: ${result.link}`;
         el.linkOut.textContent = result.link;
-        const link = saveConfig();
-        el.status.textContent = `Saved! Use this link: ${link}`;
-        refreshLink();
       } catch (err) {
         el.status.textContent = err.message;
       }
@@ -224,16 +215,6 @@ Student, Four</textarea>
       } catch (err) {
         el.status.textContent = err.message;
       }
-      const link = teacherLink();
-      if (!link) return;
-      window.open(link, '_blank');
-    });
-
-    el.copyBtn.addEventListener('click', async () => {
-      const link = teacherLink();
-      if (!link) return;
-      await navigator.clipboard.writeText(link);
-      el.status.textContent = 'Teacher link copied.';
     });
 
     refreshLink();
