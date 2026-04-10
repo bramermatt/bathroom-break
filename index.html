@@ -5,70 +5,87 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Mr. Bramer Bathroom Pass</title>
   <style>
-    body { font-family: system-ui, sans-serif; margin:0; background:#f3f7fd; color:#13263f; }
-    .app { max-width:1200px; margin:0 auto; padding:18px; display:grid; gap:14px; }
-    .card { background:#fff; border-radius:12px; padding:14px; box-shadow:0 8px 22px rgba(0,0,0,.08); }
-    .top { display:grid; grid-template-columns:2fr 1fr; gap:12px; }
-    .controls { display:flex; gap:10px; flex-wrap:wrap; align-items:end; }
-    .field { display:grid; gap:5px; }
-    select, button, input { padding:8px 10px; border-radius:8px; border:1px solid #cdd9ea; font:inherit; }
-    button { background:#2a6df4; color:#fff; border:none; font-weight:700; cursor:pointer; }
-    button:disabled { background:#98a3b6; cursor:not-allowed; }
-    .big { font-size:1.2rem; font-weight:800; background:#eaf2ff; border:1px solid #ccddff; padding:10px; border-radius:10px; margin-top:8px; }
-    .main { display:grid; grid-template-columns:1.2fr .9fr; gap:12px; }
-    .students { display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:8px; max-height:510px; overflow:auto; }
-    .student { border:1px solid #d9e5f8; border-radius:10px; padding:8px; background:#f8fbff; }
-    .student .name { font-weight:700; margin-bottom:8px; }
-    .muted { color:#5d708b; font-size:.9rem; }
-    .warn { background:#fff5da; border:1px solid #ffe09a; padding:8px; border-radius:8px; color:#744c00; }
-    .list { display:grid; gap:8px; max-height:230px; overflow:auto; margin-top:8px; }
-    .item { border:1px solid #d9e5f8; border-radius:8px; padding:8px; display:flex; justify-content:space-between; gap:8px; align-items:center; }
-    .timer { font-weight:800; }
-    @media (max-width: 980px){ .top,.main{grid-template-columns:1fr;} }
+    :root {
+      --bg:#f2f6ff; --card:#fff; --text:#11243f; --muted:#5b6f89;
+      --accent:#2d6ef4; --accent-soft:#eaf2ff; --warn:#8a5a00;
+      --warn-bg:#fff6df; --line:#dbe7fb; --shadow:0 10px 25px rgba(17,36,63,.08);
+    }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background:var(--bg); color:var(--text); }
+    .app { max-width:1300px; margin:0 auto; padding:16px; display:grid; gap:14px; }
+    .card { background:var(--card); border-radius:14px; box-shadow:var(--shadow); padding:14px; }
+    .top { display:grid; grid-template-columns: 2fr 1fr; gap:12px; }
+    .controls { display:flex; gap:10px; flex-wrap:wrap; align-items:end; margin-top:8px; }
+    .field { display:grid; gap:6px; }
+    label { font-size:.82rem; color:var(--muted); }
+    select,input,button { border-radius:10px; border:1px solid #cddaf0; padding:9px 10px; font:inherit; }
+    button { border:none; background:var(--accent); color:#fff; font-weight:700; cursor:pointer; }
+    button:disabled { background:#9ba8bc; cursor:not-allowed; }
+    .muted { color:var(--muted); }
+    .stats { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-top:10px; }
+    .stat { background:#f8fbff; border:1px solid #e4edff; border-radius:10px; padding:10px; }
+    .stat .k { font-size:.78rem; color:var(--muted); }
+    .stat .v { font-size:1.3rem; font-weight:800; }
+    .countdown { margin-top:10px; border:1px solid #ccdfff; background:var(--accent-soft); border-radius:12px; padding:12px; font-size:1.3rem; font-weight:900; }
+    .warn { margin-top:8px; background:var(--warn-bg); border:1px solid #ffe3a8; color:var(--warn); border-radius:10px; padding:9px; }
+    .main { display:grid; grid-template-columns: 1.25fr .95fr; gap:12px; }
+    .students-wrap { display:grid; gap:8px; }
+    .students { display:grid; grid-template-columns: repeat(auto-fill,minmax(200px,1fr)); gap:8px; max-height:62vh; overflow:auto; padding-right:4px; }
+    .student { border:1px solid var(--line); background:#f7faff; border-radius:10px; padding:9px; display:grid; gap:8px; }
+    .name { font-weight:700; font-size:.95rem; }
+    .row { display:flex; gap:6px; flex-wrap:wrap; }
+    .pill { display:inline-block; font-size:.74rem; border-radius:999px; padding:3px 8px; background:#e8f0fd; color:#21406e; }
+    .side { display:grid; gap:12px; }
+    .list { display:grid; gap:8px; max-height:31vh; overflow:auto; }
+    .item { border:1px solid var(--line); border-radius:9px; padding:8px; display:flex; justify-content:space-between; align-items:center; gap:8px; }
+    .timer { font-weight:900; font-variant-numeric: tabular-nums; }
+    @media (max-width: 980px){ .top,.main { grid-template-columns:1fr; } .students { max-height:none; } .list { max-height:none; } }
   </style>
 </head>
 <body>
-  <div class="app">
-    <section class="card top">
-      <div>
-        <h1>Mr. Bramer Bathroom Pass</h1>
-        <p class="muted" id="today"></p>
-        <div class="controls">
-          <div class="field">
-            <label>Period</label>
-            <select id="periodSelect"></select>
-          </div>
-          <button id="syncNow">Sync to Current Period</button>
+<div class="app">
+  <section class="card top">
+    <div>
+      <h1>Mr. Bramer Bathroom Pass</h1>
+      <p class="muted" id="today"></p>
+      <div class="controls">
+        <div class="field">
+          <label for="periodSelect">Period</label>
+          <select id="periodSelect"></select>
         </div>
-        <div class="big" id="countdown">T-minus: --:--</div>
-        <p class="warn" id="windowMsg" style="display:none; margin-top:8px;"></p>
+        <button id="syncNow">Sync to Current Period</button>
       </div>
-      <div>
-        <h3>Stats</h3>
-        <p><strong id="tripCount">0</strong> trips (selected period)</p>
-        <p><strong id="outCount">0</strong> out now</p>
+      <div class="countdown" id="countdown">T-minus: --:--</div>
+      <p class="warn" id="windowMsg" style="display:none;"></p>
+    </div>
+    <div>
+      <h3>Stats</h3>
+      <div class="stats">
+        <div class="stat"><div class="k">Trips (selected period)</div><div class="v" id="tripCount">0</div></div>
+        <div class="stat"><div class="k">Out now</div><div class="v" id="outCount">0</div></div>
       </div>
-    </section>
+    </div>
+  </section>
 
-    <section class="main">
-      <div class="card">
-        <h3>Students</h3>
-        <input id="search" placeholder="Search student" style="margin:8px 0; width:100%;"/>
-        <div class="students" id="students"></div>
-      </div>
+  <section class="main">
+    <div class="card students-wrap">
+      <h3>Students</h3>
+      <input id="search" placeholder="Search student" />
+      <div class="students" id="students"></div>
+    </div>
 
-      <div style="display:grid; gap:12px;">
-        <section class="card">
-          <h3>Requests</h3>
-          <div class="list" id="requests"></div>
-        </section>
-        <section class="card">
-          <h3>Out</h3>
-          <div class="list" id="out"></div>
-        </section>
-      </div>
-    </section>
-  </div>
+    <div class="side">
+      <section class="card">
+        <h3>Requests</h3>
+        <div id="requests" class="list"></div>
+      </section>
+      <section class="card">
+        <h3>Out of Room</h3>
+        <div id="out" class="list"></div>
+      </section>
+    </div>
+  </section>
+</div>
 
 <script>
 const rosters = {
@@ -98,8 +115,8 @@ periods.forEach(p=>{const o=document.createElement('option');o.value=p;o.textCon
 function toSec(hm){const[a,b]=hm.split(':').map(Number);return a*3600+b*60;}
 function nowSec(){const d=new Date();return d.getHours()*3600+d.getMinutes()*60+d.getSeconds();}
 function fmt(sec){sec=Math.max(0,Math.floor(sec));return `${String(Math.floor(sec/60)).padStart(2,'0')}:${String(sec%60).padStart(2,'0')}`;}
-
 function activePeriod(){const n=nowSec();return schedule.find(s=>n>=toSec(s.start)&&n<=toSec(s.end))?.label || periods[0];}
+
 function periodRule(period){
   const slot=schedule.find(s=>s.label===period); if(!slot) return {ok:false,msg:'No schedule',countdown:'--:--'};
   const n=nowSec();
@@ -107,7 +124,7 @@ function periodRule(period){
   if(!seg) return {ok:false,msg:'Not in bathroom window',countdown:'--:--'};
   const [a,b,kind]=seg;
   if(kind==='yes') return {ok:true,msg:'Bathroom window open',countdown:fmt(toSec(b)-n)};
-  const next=(slot.segments||[]).find(([a])=>n<toSec(a)&&slot.segments.some(s=>s[2]==='yes'&&s[0]===a));
+  const next=(slot.segments||[]).find(([a,,k])=>k==='yes' && n<toSec(a));
   if(next) return {ok:false,msg:'Bathroom not open yet',countdown:fmt(toSec(next[0])-n)};
   return {ok:false,msg:'Bathroom closed for this period',countdown:'00:00'};
 }
@@ -121,16 +138,14 @@ function render(){
 
   document.getElementById('today').textContent = `${new Date().toLocaleDateString()} • ${new Date().toLocaleTimeString()}`;
   document.getElementById('countdown').textContent = rule.ok ? `T-minus until cannot leave: ${rule.countdown}` : `T-minus to bathroom release: ${rule.countdown}`;
-  const wm=document.getElementById('windowMsg');
-  wm.style.display=rule.ok?'none':'block'; wm.textContent=rule.msg;
-
+  const wm=document.getElementById('windowMsg'); wm.style.display=rule.ok?'none':'block'; wm.textContent=rule.msg;
   document.getElementById('tripCount').textContent=state[p].count;
   document.getElementById('outCount').textContent=state[p].out.length;
 
   const sEl=document.getElementById('students'); sEl.innerHTML='';
   filtered.forEach(name=>{
     const d=document.createElement('div'); d.className='student';
-    d.innerHTML=`<div class="name">${name}</div><div style="display:flex; gap:6px;"><button ${rule.ok?'':'disabled'}>Send</button><button ${rule.ok?'':'disabled'}>Request</button></div>`;
+    d.innerHTML=`<div class="name">${name}</div><div class="row"><span class="pill">Trips: ${state[p].count}</span></div><div class="row"><button ${rule.ok?'':'disabled'}>Send</button><button ${rule.ok?'':'disabled'}>Request</button></div>`;
     const [send,req]=d.querySelectorAll('button');
     send.onclick=()=>{state[p].out.push({name,start:Date.now()}); state[p].count++; render();};
     req.onclick=()=>{if(!state[p].requests.find(r=>r.name===name)) state[p].requests.push({name}); render();};
