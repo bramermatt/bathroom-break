@@ -145,7 +145,7 @@ function render(){
   const sEl=document.getElementById('students'); sEl.innerHTML='';
   filtered.forEach(name=>{
     const d=document.createElement('div'); d.className='student';
-    d.innerHTML=`<div class="name">${name}</div><div class="row"><span class="pill">Trips: ${state[p].count}</span></div><div class="row"><button ${rule.ok?'':'disabled'}>Send</button><button ${rule.ok?'':'disabled'}>Request</button></div>`;
+    d.innerHTML=`<div class="name">${name}</div><div class="row"><span class="pill">Trips: ${state[p].count}</span></div><div class="row"><button ${rule.ok?'':'disabled'}>Send</button><button>Request</button></div>`;
     const [send,req]=d.querySelectorAll('button');
     send.onclick=()=>{state[p].out.push({name,start:Date.now()}); state[p].count++; render();};
     req.onclick=()=>{if(!state[p].requests.find(r=>r.name===name)) state[p].requests.push({name}); render();};
