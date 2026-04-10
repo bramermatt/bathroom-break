@@ -153,12 +153,18 @@ function render(){
   const q=document.getElementById('search').value.toLowerCase();
   const filtered=list.filter(n=>n.toLowerCase().includes(q));
   const rule=periodRule(p);
+  const active = activePeriod();
+  const activeRule = periodRule(active);
 
   document.getElementById('today').textContent = `${new Date().toLocaleDateString()} • ${new Date().toLocaleTimeString()}`;
-  const cd = countdownStatus(p);
-  document.getElementById('countdownOpen').textContent = `T-minus to let out: ${cd.open}`;
-  document.getElementById('countdownClose').textContent = `T-minus until not allowed: ${cd.close}`;
+  const cd = countdownStatus(active);
+  document.getElementById('countdownOpen').textContent = `T-minus to let out (${active}): ${cd.open}`;
+  document.getElementById('countdownClose').textContent = `T-minus until not allowed (${active}): ${cd.close}`;
   const wm=document.getElementById('windowMsg'); wm.style.display=rule.ok?'none':'block'; wm.textContent=rule.msg;
+  if(active !== p){
+    wm.style.display='block';
+    wm.textContent = `${activeRule.msg} (selected: ${p})`;
+  }
   document.getElementById('tripCount').textContent=state[p].count;
   document.getElementById('outCount').textContent=state[p].out.length;
 
